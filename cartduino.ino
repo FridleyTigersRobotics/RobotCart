@@ -24,82 +24,104 @@ float battVoltageSampSum = 0.0;
 int   battVoltageSampCnt = 0;
 
 
-//***************************************************************************
-//  
-//
-//
-//***************************************************************************
-void setup()
+// String IDs (sid)
+int const sidHorn   = 1;
+int const sidLights = 3;
+int const sidInvert = 4;
+int const sidRadio  = 6;
+int const sidXx     = 10;
+int const sidPm     = 11;
+int const sidAm     = 12;
+int const sidVdc    = 14;
+
+// Widget IDs (wid)
+int const widHornButton     = 1;
+int const widLedSlider      = 2;
+int const widLightsCheckbox = 3;
+int const widInvertCheckbox = 4;
+int const widSliderValue    = 5;
+int const widRadioCheckbox  = 6;
+int const widRtcSecond      = 7;
+int const widRtcMinute      = 8;
+int const widRtcHour        = 9;
+int const widAmPmText       = 10;
+int const widVoltageDisplay = 13;
+int const widVdcText        = 14;
+
+// Theme IDs (tid)
+int const tidTheme0 = 1;
+int const tidTheme1 = 2;
+int const tidTheme2 = 3;
+int const tidTheme3 = 5;
+int const tidTheme4 = 10;
+
+// Font IDs (fid)
+int const fidFont0 = 1;
+int const fidFont1 = 2;
+int const fidFont2 = 3;
+int const fidFont3 = 5;
+int const fidFont4 = 10;
+
+
+int const drawUnchecked = 1;
+
+
+
+void initializeLcdDisplay()
 {
   lcd.begin( EZM_BAUD_RATE );
   lcd.cls( BLACK, WHITE );
-  lcd.font("0");
-  lcd.printString("Fridley Tiger Robotics");
-  lcd.print("\\[20y");
-  lcd.print("\\[0x");
-  lcd.printString("#2227");
+  lcd.font( "0" );
+  lcd.printString( "Fridley Tiger Robotics" );
+  lcd.print( "\\[20y" );
+  lcd.print( "\\[0x" );
+  lcd.printString( "#2227" );
 
-  lcd.fontw( 1, "LCD24" );
-  lcd.theme( 1, 1, 3, BLACK, BLACK, BLACK, ORANGE, YELLOW, 1, 1, 1 );//theme 1
-  lcd.string( 1, "HORN" ); // stringId 1
-  lcd.button( 1, 210, 55, 100, 80, 1, 0, 20, 1, 1 );
+  lcd.fontw( fidFont0, "LCD24" );
+  lcd.theme( tidTheme0, 1, 3, BLACK, BLACK, BLACK, ORANGE, YELLOW, 1, 1, 1 );//theme 1
+  lcd.string( sidHorn, "HORN" ); // stringId 1
+  lcd.button( widHornButton, 210, 55, 100, 80, 1, 0, 20, tidTheme0, sidHorn );
 
-  lcd.drawLed( LEDX, LEDY, 12, BLACK, WHITE);
+  lcd.drawLed( LEDX, LEDY, 12, BLACK, WHITE );
 
-  lcd.theme(5, 1, 2, 0, 3, 3, 4, 4, 5, 6, 0);// theme 5
-  lcd.digitalMeter( 5, 150, 100, 50, 30, 14, 0, 3, METERDP, 5);//draw digital meter 5
+  lcd.theme( tidTheme3, 1, 2, 0, 3, 3,  4, 4,  5,  6, 0 );// theme 4
+  lcd.theme( tidTheme2, 1, 2, 0, 3, 0,  6, 4, 23, 35, 1 );// theme 3
+  lcd.theme( tidTheme1, 2, 3, 3, 3, 3, 35, 6,  2,  0, 1 );//theme 2
+  lcd.theme( tidTheme4, 0, 0, 0, 1, 2,  1, 0,  0,  6, 1 );
 
-  lcd.theme(3, 1, 2, 0, 3, 0, 6, 4, 23, 35, 1);// theme 3
-  
-  lcd.string( 3, "Lights" ); // stringId 3
+  //draw digital meter 5
+  lcd.digitalMeter( widSliderValue, 150, 100, 50, 30, 14, 0, 3, METERDP, tidTheme3 );
 
-  lcd.string( 4, "Invert" ); // stringId 4
 
-  lcd.string( 6, "Radio" ); // stringId 6
+
+
+  lcd.string( sidLights, "Lights" ); // stringId 3
+  lcd.string( sidInvert, "Invert" ); // stringId 4
+  lcd.string( sidRadio,  "Radio"  ); // stringId 6
+
+
+
+
   //lcd.checkbox( ID, x, y, width, height, option, theme, string);
-  lcd.checkBox( 3, 1, 60, 130, 50, 1, 3, 3 );
-  lcd.checkBox( 4, 1, 120, 130, 50, 1, 3, 4 );
-  lcd.checkBox( 6, 1, 180, 130, 50, 1, 3, 6 );
-  lcd.theme(2, 2, 3, 3, 3, 3, 35, 6, 2, 0, 1);//theme 2
-  lcd.slider( 2, 150, 145, 160, 40, 5, 125, 1, 0, 2 );
-  lcd.digitalMeter( 7, 230, 200, 30, 30, 14, 0, METERDIGITS, METERDP, 5);//draw digital meter 7, with theme of 5
-  lcd.digitalMeter( 8, 190, 200, 30, 30, 14, 0, METERDIGITS, METERDP, 5);//draw digital meter 8, with theme of 5
-  lcd.digitalMeter( 9, 150, 200, 30, 30, 14, 0, METERDIGITS, METERDP, 5);//draw digital meter 9, with theme of 5
-  lcd.theme(10, 0, 0, 0, 1, 2, 1, 0, 0, 6, 1);
-  lcd.string( 10, "XX" ); // stringId 10
-  lcd.string( 11, "PM" ); // stringId 11
-  lcd.string( 12, "AM" ); // stringId 12
-  lcd.staticText( 10, 270, 200, 30, 30, 4, 10, 10 );
-  lcd.digitalMeter( 13, 200, 10, 60, 30, 14, 0, 4, 2, 5);//draw digital meter 13, with theme of 5
-  lcd.string( 14, "VDC" ); // stringId 14
-  lcd.staticText( 14, 270, 10, 45, 30, 4, 10, 14 );
+  lcd.checkBox( widLightsCheckbox, 1, 60,  130, 50, drawUnchecked, tidTheme2, sidLights );
+  lcd.checkBox( widInvertCheckbox, 1, 120, 130, 50, drawUnchecked, tidTheme2, sidInvert );
+  lcd.checkBox( widRadioCheckbox,  1, 180, 130, 50, drawUnchecked, tidTheme2, sidRadio  );
 
-  pinMode( 4, OUTPUT );
-  pinMode( 5, OUTPUT );
-  pinMode( 6, OUTPUT );
-  pinMode( 7, OUTPUT );
-  pinMode( LED_PIN, OUTPUT );
-  pinMode( 9, OUTPUT );//490Hz PWM (2040.8us period)
-  digitalWrite( 4, HIGH );
-  digitalWrite( 5, HIGH );
-  digitalWrite( 6, HIGH );
-  digitalWrite( 7, HIGH );
-  digitalWrite( LED_PIN, LOW );
-  analogWrite( 9, 125 );//analogWrite values from 0 to 255,
+  lcd.slider( widLedSlider, 150, 145, 160, 40, 5, 125, 1, 0, tidTheme1 );
+  lcd.digitalMeter( widRtcSecond, 230, 200, 30, 30, 14, 0, METERDIGITS, METERDP, tidTheme3 );
+  lcd.digitalMeter( widRtcMinute, 190, 200, 30, 30, 14, 0, METERDIGITS, METERDP, tidTheme3 );
+  lcd.digitalMeter( widRtcHour,   150, 200, 30, 30, 14, 0, METERDIGITS, METERDP, tidTheme3 );
 
-  //RTC begin communication
-  Wire.begin();
+  lcd.string( sidXx, "XX" ); // stringId 10
+  lcd.string( sidPm, "PM" ); // stringId 11
+  lcd.string( sidAm, "AM" ); // stringId 12
+  lcd.staticText( widAmPmText, 270, 200, 30, 30, 4, 10, sidXx );
 
-  if( 0 )
-  { //set time
-    Clock.setYear( 2018 );
-    Clock.setMonth( 9 );
-    Clock.setDate( 23 );
-    Clock.setDoW( 1 );
-    Clock.setHour( 8 + 12 );
-    Clock.setMinute( 39 );
-    Clock.setSecond( 0 );
-  }
+
+  lcd.digitalMeter( widVoltageDisplay, 200, 10, 60, 30, 14, 0, 4, 2, tidTheme3 );
+  lcd.string( sidVdc, "VDC" ); // stringId 14
+  lcd.staticText( widVdcText, 270, 10, 45, 30, 4, 10, sidVdc );
+
 }
 
 
@@ -128,7 +150,7 @@ void updateBatteryVoltage()
     float const actualVoltage  = rawVoltage * voltageDividerRatio;
     int   const displayVoltage = actualVoltage * voltageDisplayMultiplier
 
-    lcd.wvalue( 13, displayVoltage );
+    lcd.wvalue( widVoltageDisplay, displayVoltage );
 
     battVoltageSampCnt = 0;
     battVoltageSampSum = 0.0f;
@@ -147,9 +169,6 @@ void updateRealTimeClock()
 {
   //read and display RTC
   DateTime now = RTC.now();
-  lcd.wvalue( 7, now.second() );
-  lcd.wvalue( 8, now.minute() );
-
 
   if( lastloophour != now.hour() )
   {
@@ -157,21 +176,23 @@ void updateRealTimeClock()
     if( now.hour() > 12 )
     {
       adjusthour = now.hour() - 12;
-      lcd.st_value( 10, 11 );//PM
+      lcd.st_value( widAmPmText, sidPm );
     }
-    if (now.hour() == 0 )
+    if ( now.hour() == 0 )
     {
       adjusthour = 12;
-      lcd.st_value( 10, 12 );//AM
+      lcd.st_value( widAmPmText, sidAm );
     }
     if( now.hour() <= 12 && now.hour() != 0 )
     {
       adjusthour = now.hour();
-      lcd.st_value( 10, 12 );//AM
+      lcd.st_value( widAmPmText, sidAm );
     }
   }
  
-  lcd.wvalue( 9, adjusthour );  
+  lcd.wvalue( widRtcSecond, now.second() );
+  lcd.wvalue( widRtcMinute, now.minute() );
+  lcd.wvalue( widRtcHour,   adjusthour   );  
 }
 
 
@@ -188,7 +209,7 @@ void updateBlinkin()
 
   //set pwm out pin 9 for Blinkin
   sliderval = 125 + lcd.wvalue( 2 );
-  lcd.wvalue( 5, sliderval );
+  lcd.wvalue( widSliderValue, sliderval );
   
   if( currentMillis - previousMillis > pwmUpdateInterval )
   {//only update pwm every 100 milliseconds
@@ -206,56 +227,95 @@ void updateBlinkin()
 //***************************************************************************
 void updateRelays()
 {
-  int const widgetId = lcd.wstack( 0 );
+  int const widgetId = lcd.wstack( FIFO );
 
-  if( widgetId == 1 ) 
-  {// if Button 1 is pressed:
-    if( lcd.currentInfo == 4 )
+  if( widgetId == widHornButton ) 
+  {
+    if( lcd.currentInfo == PRESSED )
     {
       digitalWrite( 5, LOW );
       lcd.drawLed( LEDX, LEDY, 12, RED, WHITE);
     }
     else 
-    {// if button 1 is released
+    {
       digitalWrite( 5, HIGH );
       lcd.drawLed( LEDX, LEDY, 12, BLACK, WHITE);
     }    
   }
 
-  if( widgetId == 3 ) 
-  { //if checkbox 3 was pressed:
-    if( lcd.currentInfo == 4 )
-    {     // if checkbox 3 is checked
+  if( widgetId == widLightsCheckbox ) 
+  { 
+    if( lcd.currentInfo == PRESSED )
+    {
       digitalWrite( 4, LOW );
     }
-    else  // if checkbox 1 is unchecked
+    else
     {
       digitalWrite( 4, HIGH );      
     }
   }
 
-  if( widgetId == 4 ) 
-  { //if checkbox 4 was pressed:
-    if( lcd.currentInfo == 4 )     // if checkbox 4 is checked
+  if( widgetId == widInvertCheckbox ) 
+  {
+    if( lcd.currentInfo == PRESSED )
     {
       digitalWrite( 6, LOW );
     }
-    else  // if checkbox 1 is unchecked
+    else
     {
       digitalWrite( 6, HIGH );      
     }
   }
 
-  if( widgetId == 6 ) 
-  { //if checkbox 6 was pressed:
-    if( lcd.currentInfo == 4 )     // if checkbox 6 is checked
+  if( widgetId == widRadioCheckbox ) 
+  {
+    if( lcd.currentInfo == PRESSED )
     {
       digitalWrite( 7, LOW );
     }
-    else  // if checkbox 1 is unchecked
+    else
     {
       digitalWrite( 7, HIGH );      
     }
+  }
+}
+
+
+
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
+void setup()
+{
+  initializeLcdDisplay();
+
+  pinMode( 4, OUTPUT );
+  pinMode( 5, OUTPUT );
+  pinMode( 6, OUTPUT );
+  pinMode( 7, OUTPUT );
+  pinMode( LED_PIN, OUTPUT );
+  pinMode( 9, OUTPUT );//490Hz PWM (2040.8us period)
+  digitalWrite( 4, HIGH );
+  digitalWrite( 5, HIGH );
+  digitalWrite( 6, HIGH );
+  digitalWrite( 7, HIGH );
+  digitalWrite( LED_PIN, LOW );
+  analogWrite( 9, 125 );//analogWrite values from 0 to 255,
+
+  // RTC begin communication
+  Wire.begin();
+
+  if( 0 )
+  { // set time
+    Clock.setYear( 2018 );
+    Clock.setMonth( 9 );
+    Clock.setDate( 23 );
+    Clock.setDoW( 1 );
+    Clock.setHour( 8 + 12 );
+    Clock.setMinute( 39 );
+    Clock.setSecond( 0 );
   }
 }
 
