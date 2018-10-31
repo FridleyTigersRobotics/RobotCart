@@ -142,7 +142,7 @@ void updateBatteryVoltage()
   float const voltageDisplayMultiplier = 100;
   // arduino reads 0.181V high
   float const analogVoltageBias        = 0.181;
-
+  DateTime now = RTC.now();
 
   battVoltageSampSum += ( ( (float) analogRead( A0 ) * 5.0f / 1024.0f ) - analogVoltageBias );
   battVoltageSampCnt++;
@@ -152,7 +152,7 @@ void updateBatteryVoltage()
   {
     float const rawVoltage     = battVoltageSampSum / (float)battVoltageSampCnt;
     float const actualVoltage  = rawVoltage * voltageDividerRatio;
-    int   const displayVoltage = actualVoltage * voltageDisplayMultiplier
+    int   const displayVoltage = actualVoltage * voltageDisplayMultiplier;
 
     lcd.wvalue( widVoltageDisplay, displayVoltage );
 
