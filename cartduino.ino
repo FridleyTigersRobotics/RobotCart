@@ -1,8 +1,15 @@
 //Andrew Panning 9/29/2018
 
+#define MANUAL_LED_DRIVER  ( 0 )
+#define BLINKIN_LED_DRIVER ( !MANUAL_LED_DRIVER )
+
 #include <ezLCDLib.h>
 #include <DS3231.h>
 #include <Wire.h>
+
+#if MANUAL_LED_DRIVER
+  #include <FastLED.h>
+#endif
 
 #define LED_PIN 13
 #define METERDIGITS 2
@@ -57,13 +64,9 @@ int const tidTheme4 = 10;
 
 // Font IDs (fid)
 int const fidFont0 = 1;
-int const fidFont1 = 2;
-int const fidFont2 = 3;
-int const fidFont3 = 5;
-int const fidFont4 = 10;
 
 
-int const drawUnchecked = 1;
+int const DRAW_UNCHECKED = 1;
 
 
 
@@ -71,55 +74,56 @@ void initializeLcdDisplay()
 {
   lcd.begin( EZM_BAUD_RATE );
   lcd.cls( BLACK, WHITE );
-  lcd.font( "0" );
+  lcd.font( "0" ); // Builtin font 0, very fast to draw.
   lcd.printString( "Fridley Tiger Robotics" );
+
+  // Position for next string:
   lcd.print( "\\[20y" );
   lcd.print( "\\[0x" );
   lcd.printString( "#2227" );
 
   lcd.fontw( fidFont0, "LCD24" );
-  lcd.theme( tidTheme0, 1, 3, BLACK, BLACK, BLACK, ORANGE, YELLOW, 1, 1, 1 );//theme 1
-  lcd.string( sidHorn, "HORN" ); // stringId 1
+
+
+  lcd.theme( tidTheme0, 1, 3, BLACK, BLACK, BLACK, ORANGE, YELLOW, 1, 1, fidFont0 );
+  lcd.theme( tidTheme3, 1, 2, 0, 3, 3,  4, 4,  5,  6, 0 );// what font??
+  lcd.theme( tidTheme2, 1, 2, 0, 3, 0,  6, 4, 23, 35, fidFont0 );// theme 3
+  lcd.theme( tidTheme1, 2, 3, 3, 3, 3, 35, 6,  2,  0, fidFont0 );//theme 2
+  lcd.theme( tidTheme4, 0, 0, 0, 1, 2,  1, 0,  0,  6, fidFont0 );
+
+  lcd.string( sidHorn,   "HORN"   );
+  lcd.string( sidLights, "Lights" );
+  lcd.string( sidInvert, "Invert" );
+  lcd.string( sidRadio,  "Radio"  );
+  lcd.string( sidXx,     "XX"     );
+  lcd.string( sidPm,     "PM"     ); 
+  lcd.string( sidAm,     "AM"     );
+  lcd.string( sidVdc,    "VDC"    );
+
   lcd.button( widHornButton, 210, 55, 100, 80, 1, 0, 20, tidTheme0, sidHorn );
 
   lcd.drawLed( LEDX, LEDY, 12, BLACK, WHITE );
 
-  lcd.theme( tidTheme3, 1, 2, 0, 3, 3,  4, 4,  5,  6, 0 );// theme 4
-  lcd.theme( tidTheme2, 1, 2, 0, 3, 0,  6, 4, 23, 35, 1 );// theme 3
-  lcd.theme( tidTheme1, 2, 3, 3, 3, 3, 35, 6,  2,  0, 1 );//theme 2
-  lcd.theme( tidTheme4, 0, 0, 0, 1, 2,  1, 0,  0,  6, 1 );
 
   //draw digital meter 5
   lcd.digitalMeter( widSliderValue, 150, 100, 50, 30, 14, 0, 3, METERDP, tidTheme3 );
 
 
-
-
-  lcd.string( sidLights, "Lights" ); // stringId 3
-  lcd.string( sidInvert, "Invert" ); // stringId 4
-  lcd.string( sidRadio,  "Radio"  ); // stringId 6
-
-
-
-
   //lcd.checkbox( ID, x, y, width, height, option, theme, string);
-  lcd.checkBox( widLightsCheckbox, 1, 60,  130, 50, drawUnchecked, tidTheme2, sidLights );
-  lcd.checkBox( widInvertCheckbox, 1, 120, 130, 50, drawUnchecked, tidTheme2, sidInvert );
-  lcd.checkBox( widRadioCheckbox,  1, 180, 130, 50, drawUnchecked, tidTheme2, sidRadio  );
+  lcd.checkBox( widLightsCheckbox, 1, 60,  130, 50, DRAW_UNCHECKED, tidTheme2, sidLights );
+  lcd.checkBox( widInvertCheckbox, 1, 120, 130, 50, DRAW_UNCHECKED, tidTheme2, sidInvert );
+  lcd.checkBox( widRadioCheckbox,  1, 180, 130, 50, DRAW_UNCHECKED, tidTheme2, sidRadio  );
 
   lcd.slider( widLedSlider, 150, 145, 160, 40, 5, 125, 1, 0, tidTheme1 );
+
   lcd.digitalMeter( widRtcSecond, 230, 200, 30, 30, 14, 0, METERDIGITS, METERDP, tidTheme3 );
   lcd.digitalMeter( widRtcMinute, 190, 200, 30, 30, 14, 0, METERDIGITS, METERDP, tidTheme3 );
   lcd.digitalMeter( widRtcHour,   150, 200, 30, 30, 14, 0, METERDIGITS, METERDP, tidTheme3 );
-
-  lcd.string( sidXx, "XX" ); // stringId 10
-  lcd.string( sidPm, "PM" ); // stringId 11
-  lcd.string( sidAm, "AM" ); // stringId 12
   lcd.staticText( widAmPmText, 270, 200, 30, 30, 4, 10, sidXx );
 
 
   lcd.digitalMeter( widVoltageDisplay, 200, 10, 60, 30, 14, 0, 4, 2, tidTheme3 );
-  lcd.string( sidVdc, "VDC" ); // stringId 14
+
   lcd.staticText( widVdcText, 270, 10, 45, 30, 4, 10, sidVdc );
 
 }
@@ -202,29 +206,6 @@ void updateRealTimeClock()
 //
 //
 //***************************************************************************
-void updateBlinkin()
-{
-  unsigned long const pwmUpdateInterval = 100;
-  unsigned long const currentMillis     = millis();
-
-  //set pwm out pin 9 for Blinkin
-  sliderval = 125 + lcd.wvalue( 2 );
-  lcd.wvalue( widSliderValue, sliderval );
-  
-  if( currentMillis - previousMillis > pwmUpdateInterval )
-  {//only update pwm every 100 milliseconds
-    previousMillis = currentMillis;
-    analogWrite( 9, sliderval );
-  }
-}
-
-
-
-//***************************************************************************
-//  
-//
-//
-//***************************************************************************
 void updateRelays()
 {
   int const widgetId = lcd.wstack( FIFO );
@@ -282,6 +263,77 @@ void updateRelays()
 
 
 
+
+#if MANUAL_LED_DRIVER
+
+int const ledStripLength = 60;
+int const numLedStrips   = 4;
+int const totalNumLeds   = ledStripLength * numLedStrips;
+
+//float const ledSignalPropgationTime = totalNumLeds;
+
+int const ledDriverPin = 6;
+
+CRGB leds[totalNumLeds] = { 0 };
+
+
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
+void initializeLedDriver()
+{
+  FastLED.addLeds< NEOPIXEL, ledDriverPin >( leds, totalNumLeds );
+}
+
+
+
+
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
+void updateLedDriver()
+{
+
+
+
+
+  FastLED.show()
+}
+
+#endif // #if MANUAL_LED_DRIVER
+
+
+#if BLINKIN_LED_DRIVER
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
+void updateBlinkin()
+{
+  unsigned long const pwmUpdateInterval = 100;
+  unsigned long const currentMillis     = millis();
+
+  //set pwm out pin 9 for Blinkin
+  sliderval = 125 + lcd.wvalue( 2 );
+  lcd.wvalue( widSliderValue, sliderval );
+  
+  if( currentMillis - previousMillis > pwmUpdateInterval )
+  {//only update pwm every 100 milliseconds
+    previousMillis = currentMillis;
+    analogWrite( 9, sliderval );
+  }
+}
+
+#endif // #if BLINKIN_LED_DRIVER
+
+
+
+
 //***************************************************************************
 //  
 //
@@ -291,18 +343,29 @@ void setup()
 {
   initializeLcdDisplay();
 
+#if MANUAL_LED_DRIVER
+  initializeLedDriver();
+#endif
+
+#if BLINKIN_LED_DRIVER
+  pinMode( 9, OUTPUT );//490Hz PWM (2040.8us period)
+#endif
+
   pinMode( 4, OUTPUT );
   pinMode( 5, OUTPUT );
   pinMode( 6, OUTPUT );
   pinMode( 7, OUTPUT );
   pinMode( LED_PIN, OUTPUT );
-  pinMode( 9, OUTPUT );//490Hz PWM (2040.8us period)
+
   digitalWrite( 4, HIGH );
   digitalWrite( 5, HIGH );
   digitalWrite( 6, HIGH );
   digitalWrite( 7, HIGH );
   digitalWrite( LED_PIN, LOW );
+
+#if BLINKIN_LED_DRIVER
   analogWrite( 9, 125 );//analogWrite values from 0 to 255,
+#endif
 
   // RTC begin communication
   Wire.begin();
@@ -328,9 +391,15 @@ void setup()
 //***************************************************************************
 void loop()
 {
-  updateRelays();
+#if MANUAL_LED_DRIVER
+  updateLedDriver();
+#endif
 
+#if BLINKIN_LED_DRIVER
   updateBlinkin();
+#endif
+
+  updateRelays();
 
   updateRealTimeClock();
 
