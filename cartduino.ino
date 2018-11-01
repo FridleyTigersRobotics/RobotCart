@@ -1,6 +1,6 @@
 //Andrew Panning 9/29/2018
 
-#define MANUAL_LED_DRIVER  ( 0 )
+#define MANUAL_LED_DRIVER  ( 1 )
 #define BLINKIN_LED_DRIVER ( !MANUAL_LED_DRIVER )
 
 #include <ezLCDLib.h>
@@ -74,7 +74,8 @@ void initializeLcdDisplay()
 {
   lcd.begin( EZM_BAUD_RATE );
   lcd.cls( BLACK, WHITE );
-  lcd.font( "0" ); // Builtin font 0, very fast to draw.
+  // Is this a user font, or the build in font 0?
+  lcd.font( "0" );
   lcd.printString( "Fridley Tiger Robotics" );
 
   // Position for next string:
@@ -135,14 +136,15 @@ void initializeLcdDisplay()
 //
 //
 //***************************************************************************
-void updateBatteryVoltage()
+void updateBatteryVoltage(
+  DateTime now
+)
 {
   // scales x11 due to voltage divider, measured x11.243
   float const voltageDividerRatio      = 11.243;
   float const voltageDisplayMultiplier = 100;
   // arduino reads 0.181V high
   float const analogVoltageBias        = 0.181;
-  DateTime now = RTC.now();
 
   battVoltageSampSum += ( ( (float) analogRead( A0 ) * 5.0f / 1024.0f ) - analogVoltageBias );
   battVoltageSampCnt++;
@@ -169,28 +171,33 @@ void updateBatteryVoltage()
 //
 //
 //***************************************************************************
-void updateRealTimeClock()
+void updateRealTimeClock( 
+  DateTime now 
+)
 {
-  //read and display RTC
-  DateTime now = RTC.now();
-
   if( lastloophour != now.hour() )
   {
     lastloophour = now.hour();
+    if( now.hour() > 11 )
+    {
+      lcd.st_value( widAmPmText, sidPm );
+    }
+    else
+    {
+      lcd.st_value( widAmPmText, sidAm );
+    }
+
     if( now.hour() > 12 )
     {
       adjusthour = now.hour() - 12;
-      lcd.st_value( widAmPmText, sidPm );
     }
-    if ( now.hour() == 0 )
+    else if ( now.hour() == 0 )
     {
       adjusthour = 12;
-      lcd.st_value( widAmPmText, sidAm );
     }
-    if( now.hour() <= 12 && now.hour() != 0 )
+    else if( now.hour() <= 12 && now.hour() != 0 )
     {
       adjusthour = now.hour();
-      lcd.st_value( widAmPmText, sidAm );
     }
   }
  
@@ -266,6 +273,67 @@ void updateRelays()
 
 #if MANUAL_LED_DRIVER
 
+
+class LedAnimator
+{
+
+private:
+  int length;
+  int numStrips;
+  int numLeds;
+  CRGB *leds;
+
+
+public:
+
+  typedef enum
+  {
+     LED_ANI_Solid,
+     NUM_LED_ANIMATIONS
+  } led_animation_t;
+
+
+  LedAnimator( 
+    int ledStripLength,
+    int numLedStrips
+  )
+  { 
+    length    = ledStripLength;
+    numStrips = numLedStrips;
+    numLeds   = ledStripLength * numLedStrips;
+    leds      = new CRGB[ numLeds ];
+  }
+
+  ~LedAnimator()
+  {
+    delete []leds;
+  }
+
+
+
+  void Animation_Solid(
+
+  )
+  {
+
+
+
+  }
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
 int const ledStripLength = 60;
 int const numLedStrips   = 4;
 int const totalNumLeds   = ledStripLength * numLedStrips;
@@ -274,7 +342,11 @@ int const totalNumLeds   = ledStripLength * numLedStrips;
 
 int const ledDriverPin = 6;
 
-CRGB leds[totalNumLeds] = { 0 };
+
+
+
+
+
 
 
 //***************************************************************************
@@ -284,7 +356,7 @@ CRGB leds[totalNumLeds] = { 0 };
 //***************************************************************************
 void initializeLedDriver()
 {
-  FastLED.addLeds< NEOPIXEL, ledDriverPin >( leds, totalNumLeds );
+  //FastLED.addLeds< NEOPIXEL, ledDriverPin >( leds, totalNumLeds );
 }
 
 
@@ -301,7 +373,10 @@ void updateLedDriver()
 
 
 
-  FastLED.show()
+
+
+
+  //FastLED.show()
 }
 
 #endif // #if MANUAL_LED_DRIVER
@@ -391,6 +466,8 @@ void setup()
 //***************************************************************************
 void loop()
 {
+  DateTime now = RTC.now();
+
 #if MANUAL_LED_DRIVER
   updateLedDriver();
 #endif
@@ -401,9 +478,9 @@ void loop()
 
   updateRelays();
 
-  updateRealTimeClock();
+  updateRealTimeClock( now );
 
-  updateBatteryVoltage();
+  updateBatteryVoltage( now );
 
   // slow execution delay before next loop
   delay( 10 );
