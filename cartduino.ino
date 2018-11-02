@@ -271,10 +271,19 @@ void updateRelays()
   }
 }
 
+  typedef enum
+  {
+     LED_ANI_None,
+     LED_ANI_Solid,
+     LED_ANI_Raindow,
+     LED_ANI_Pong,
+     NUM_LED_ANIMATIONS
+  } led_animation_t;
 
 
 
 #if MANUAL_LED_DRIVER
+
 
 
 class LedAnimator
@@ -285,15 +294,13 @@ private:
   int numStrips;
   int numLeds;
   CRGB *leds;
+  float timeIncrement;
+  float currentTime;
+  led_animation_t currentAnimation;
 
 
 public:
 
-  typedef enum
-  {
-     LED_ANI_Solid,
-     NUM_LED_ANIMATIONS
-  } led_animation_t;
 
 
   LedAnimator( 
@@ -301,10 +308,13 @@ public:
     int numLedStrips
   )
   { 
-    length    = ledStripLength;
-    numStrips = numLedStrips;
-    numLeds   = ledStripLength * numLedStrips;
-    leds      = new CRGB[ numLeds ];
+    length        = ledStripLength;
+    numStrips     = numLedStrips;
+    numLeds       = ledStripLength * numLedStrips;
+    leds          = new CRGB[ numLeds ];
+    timeIncrement = 1.0f;
+    currentTime   = 0.0f;
+    currentAnimation = LED_ANI_None;
   }
 
   ~LedAnimator()
@@ -312,15 +322,151 @@ public:
     delete []leds;
   }
 
+  void Init_Animation()
+  {
+    currentTime += timeIncrement;
+
+    switch ( currentAnimation )
+    {
+      case LED_ANI_Solid:
+      {
+        Init_Solid();
+        break;
+      }
+
+      case LED_ANI_Raindow:
+      {
+        Init_Rainbow();
+        break;
+      }
+
+      case LED_ANI_Pong:
+      {
+        Init_Pong();
+        break;
+      }
+
+      case LED_ANI_None:
+      default:
+      {
+        TurnOffLeds();
+        break;
+      }
+    }
+  }
+
+  void Update_Animation()
+  {
+    currentTime += timeIncrement;
+
+    switch ( currentAnimation )
+    {
+      case LED_ANI_Solid:
+      {
+        Animation_Solid();
+        break;
+      }
+
+      case LED_ANI_Raindow:
+      {
+        Animation_Rainbow( currentTime );
+        break;
+      }
+
+      case LED_ANI_Pong:
+      {
+        Animation_Pong( currentTime );
+        break;
+      }
+
+      case LED_ANI_None:
+      default:
+      {
+        break;
+      }
+    }
+
+    FastLED.show();
+  }
 
 
-  void Animation_Solid(
+  void TurnOffLeds()
+  {
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      leds[idx] = CRGB::Black;
+    }
+  }
 
-  )
+
+  void Init_Solid( )
+  {
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      leds[idx] = CRGB::Black;
+    }
+  }
+
+  void Animation_Solid()
+  {
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      leds[idx] = CRGB::Black;
+    }
+  }
+
+  void Init_Rainbow( )
   {
 
+  }
+
+  void Animation_Rainbow( float currentTime )
+  {
+    uint8_t const offset = floor( currentTime );
+
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      uint8_t const hue = offset + idx / 4;
+      leds[idx].setHSV( hue, 255, 255 );
+    }
+  }
 
 
+  uint8_t  pongHue;
+  uint16_t pongPosition;
+  int      pongWidth;
+
+  void Init_Pong( uint8_t hue )
+  {
+    pongHue      = hue;
+    pongPosition = 0;
+    pongWidth    = 2;
+  }
+
+  void Animation_Pong( float currentTime )
+  {
+    uint8_t const offset = floor( currentTime );
+
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      int const minPos = idx - pongWidth;
+      int const maxPos = idx + pongWidth;
+      uint8_t bightness = 0;
+
+      if ( ( idx > minPos ) && ( idx < maxPos ) )
+      {
+        bightness = 255;
+      }
+      else
+      {
+        bightness = 0;
+      }
+
+      leds[idx].setHSV( pongHue, 255, bightness );
+    }
+
+    pongPosition++;
+    pongPosition %= numLeds;
   }
 
 
