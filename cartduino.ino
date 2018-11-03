@@ -9,7 +9,7 @@
 #include <ezLCDLib.h>
 #include <DS3231.h>
 #include <Wire.h>
-// test
+
 #if MANUAL_LED_DRIVER
   #include <FastLED.h>
 #endif
@@ -90,7 +90,7 @@ void initializeLcdDisplay()
 
 
   lcd.theme( tidTheme0, 1, 3, BLACK, BLACK, BLACK, ORANGE, YELLOW, 1, 1, fidFont0 );
-  lcd.theme( tidTheme3, 1, 2, 0, 3, 3,  4, 4,  5,  6, 0 );// what font??
+  lcd.theme( tidTheme3, 1, 2, 0, 3, 3,  4, 4,  5,  6, fidFont0 );// what font??
   lcd.theme( tidTheme2, 1, 2, 0, 3, 0,  6, 4, 23, 35, fidFont0 );// theme 3
   lcd.theme( tidTheme1, 2, 3, 3, 3, 3, 35, 6,  2,  0, fidFont0 );//theme 2
   lcd.theme( tidTheme4, 0, 0, 0, 1, 2,  1, 0,  0,  6, fidFont0 );
@@ -277,6 +277,8 @@ void updateRelays()
      LED_ANI_Solid,
      LED_ANI_Raindow,
      LED_ANI_Pong,
+     LED_ANI_Vu,
+     LED_ANI_Rain,
      NUM_LED_ANIMATIONS
   } led_animation_t;
 
@@ -284,7 +286,7 @@ void updateRelays()
 
 #if MANUAL_LED_DRIVER
 
-
+float const brightArray[16] = {0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.9, 0.8, 0.7, 0.5, 0.3, 0.2, 0.1, 0.0};
 
 class LedAnimator
 {
@@ -311,10 +313,11 @@ public:
     length        = ledStripLength;
     numStrips     = numLedStrips;
     numLeds       = ledStripLength * numLedStrips;
-    leds          = new CRGB[ numLeds ];
+    leds          = new CRGB[ numLeds ];     
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
-    currentAnimation = LED_ANI_None;
+    currentAnimation = LED_ANI_Vu;
+    FastLED.addLeds< NEOPIXEL, 9 >( leds, numLeds );
   }
 
   ~LedAnimator()
@@ -324,8 +327,6 @@ public:
 
   void Init_Animation()
   {
-    currentTime += timeIncrement;
-
     switch ( currentAnimation )
     {
       case LED_ANI_Solid:
@@ -342,9 +343,22 @@ public:
 
       case LED_ANI_Pong:
       {
-        Init_Pong();
+        Init_Pong( 0 );
         break;
       }
+
+      case LED_ANI_Vu:
+      {
+        Init_Vu( );
+        break;
+      }
+
+      case LED_ANI_Rain:
+      {
+        Init_Rain( );
+        break;
+      }
+
 
       case LED_ANI_None:
       default:
@@ -379,13 +393,27 @@ public:
         break;
       }
 
+      case LED_ANI_Vu:
+      {
+        Animation_Vu( currentTime );
+        break;
+      }
+
+      
+      case LED_ANI_Rain:
+      {
+        Animation_Rain( currentTime );
+        delay( 50 );
+        break;
+      }
+
       case LED_ANI_None:
       default:
       {
         break;
       }
     }
-
+    
     FastLED.show();
   }
 
@@ -426,47 +454,200 @@ public:
 
     for ( int idx = 0; idx < numLeds; idx++ )
     {
-      uint8_t const hue = offset + idx / 4;
-      leds[idx].setHSV( hue, 255, 255 );
+      uint8_t const hue = offset + idx*2;
+      leds[idx].setHSV( hue, 255, 90 );
     }
   }
 
+ 
+  int *rain;
 
-  uint8_t  pongHue;
-  uint16_t pongPosition;
-  int      pongWidth;
-
-  void Init_Pong( uint8_t hue )
+  void Init_Rain( )
   {
-    pongHue      = hue;
-    pongPosition = 0;
-    pongWidth    = 2;
+    rain = new int[length];
+    //memset( rain, 0, sizeof(*rain) * length );
+    srand(millis());
   }
 
-  void Animation_Pong( float currentTime )
+  void Animation_Rain( float currentTime )
   {
-    uint8_t const offset = floor( currentTime );
+    int const dist = 4;
 
-    for ( int idx = 0; idx < numLeds; idx++ )
+    for ( int idx = 0; idx < length; idx++ )
     {
-      int const minPos = idx - pongWidth;
-      int const maxPos = idx + pongWidth;
-      uint8_t bightness = 0;
+      if ( rain[idx] == 0 )
+      {
+        if ((rand()%1000) == 0)
+        {
+          rain[idx] = 1;
+        }
+      }
+      else if ( rain[idx] > (14 + dist) )
+      {
+        rain[idx] = 0;
+      }
+      else
+      {
+        rain[idx]++;
+      }
+    }
+    float bightness = 190;
+    uint8_t hue = 96;
+    for ( int idx = 0; idx < length; idx++ )
+    {
+      int rainValue = rain[idx];
+      if ( rain[idx] == 0 )
+      {
+        leds[idx].setHSV( hue, 255, 0 );
+        leds[length*2 - idx - 1].setHSV( hue, 255, 0 );
+      }
+      else
+      {
+        int topIdx = (rainValue < 16) ? rainValue : 15;
+        int botIdx = ((rainValue-dist) > 0) ? (rainValue-dist) : 0;
+        uint8_t topBri = bightness * brightArray[topIdx];
+        uint8_t botBri = bightness * brightArray[botIdx];
+        leds[idx].setHSV( hue, 255, topBri );
+        leds[length*2 - idx - 1].setHSV( hue, 255, botBri );
+      }
+    }
+
+  }
+
+
+
+
+  
+  float animationLen;
+  int   vuLedLen;
+  float vuTime;
+  void Init_Vu( )
+  {
+    animationLen = 35;
+    vuLedLen = 60;
+    vuTime = 0;
+    TurnOffLeds();
+  }
+
+  void Animation_Vu( float currentTime )
+  {
+    uint8_t const numStrips2 = (numLeds + vuLedLen) / vuLedLen - 1;
+
+    vuTime += 1.0f;
+    if ( vuTime >= animationLen )
+    {
+       vuTime = 0;
+    }
+
+    
+
+    for ( int idx = 0; idx < vuLedLen; idx++ )
+    {
+      int const minPos = 0;
+      int maxPos;
+      uint8_t bightness = 100;
+      uint8_t hue = 96;
+
+      if (vuTime < (animationLen/2.0))
+      {
+        maxPos = ceil( (float)vuLedLen * (-0.25 * vuTime + 0.05 *vuTime * vuTime) / (animationLen/2.0) );
+      }
+      else
+      {
+        float vuTime2 = (animationLen) - vuTime;
+        maxPos = ceil( (float)vuLedLen * (vuTime2 / (animationLen/2.0) ));
+      }
+
+    
+      if ( idx > 40 )
+      {
+        hue = 45;
+      }
+      
+      if ( idx > 50 )
+      {
+        hue = 0;
+      }
 
       if ( ( idx > minPos ) && ( idx < maxPos ) )
       {
-        bightness = 255;
+        bightness = 80;
       }
       else
       {
         bightness = 0;
       }
+      
+      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
+      {
+        if (idxStrip % 2)
+        {
+          leds[idx + vuLedLen * idxStrip].setHSV( hue, 255, bightness );
+        }
+        else
+        {
+           leds[vuLedLen * (idxStrip+1)-idx - 1].setHSV( hue, 255, bightness );
+        }
+      }
+    }
+  }
 
-      leds[idx].setHSV( pongHue, 255, bightness );
+  
+
+
+  uint8_t  pongHue;
+  uint16_t pongPosition;
+  int      pongWidth;
+  int      pongInc;
+  int      pongBoundry;
+
+  void Init_Pong( uint8_t hue )
+  {
+    pongHue      = hue;
+    pongPosition = 0;
+    pongWidth    = 4;
+    pongInc      = 1;
+    pongBoundry  = 30;
+    TurnOffLeds();
+  }
+
+  void Animation_Pong( float currentTime )
+  {
+    uint8_t const offset = floor( currentTime );
+    uint8_t const numStrips2 = (numLeds + pongBoundry) / pongBoundry - 1;
+    for ( int idx = 0; idx < pongBoundry; idx++ )
+    {
+      int const minPos = pongPosition - pongWidth;
+      int const maxPos = pongPosition + pongWidth;
+      uint8_t bightness = 0;
+
+      if ( ( idx > minPos ) && ( idx < maxPos ) )
+      {
+        bightness = 90;
+      }
+      else
+      {
+        bightness = 0;
+      }
+      
+      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
+      {
+        if (idxStrip % 2)
+        {
+          leds[idx + pongBoundry * idxStrip].setHSV( pongHue, 255, bightness );
+        }
+        else
+        {
+           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue, 255, bightness );
+        }
+      }
     }
 
-    pongPosition++;
-    pongPosition %= numLeds;
+    pongPosition += pongInc;
+    if ( pongPosition >= pongBoundry )
+    {
+      pongInc *= -1;
+    }
   }
 
 
@@ -486,13 +667,14 @@ public:
 int const ledStripLength = 60;
 int const numLedStrips   = 4;
 int const totalNumLeds   = ledStripLength * numLedStrips;
+CRGB leds[totalNumLeds];
 
 //float const ledSignalPropgationTime = totalNumLeds;
 
-int const ledDriverPin = 6;
+int const ledDriverPin = 9;
+  
 
-
-
+LedAnimator ledDriver = LedAnimator::LedAnimator(ledStripLength, numLedStrips);
 
 
 
@@ -505,12 +687,21 @@ int const ledDriverPin = 6;
 //***************************************************************************
 void initializeLedDriver()
 {
+  //leds          = new CRGB[ totalNumLeds ];
   //FastLED.addLeds< NEOPIXEL, ledDriverPin >( leds, totalNumLeds );
+
+  ledDriver.Init_Animation();
+
+  /*for ( int idx = 0; idx < totalNumLeds; idx++ )
+  {
+    leds[idx].setHSV( idx % 256, 255, 0 );
+  }*/
 }
 
 
 
-
+uint8_t  offset = 0;
+int count2 = 0;
 //***************************************************************************
 //  
 //
@@ -518,14 +709,38 @@ void initializeLedDriver()
 //***************************************************************************
 void updateLedDriver()
 {
+  ledDriver.Update_Animation();
 
+  /*for ( int idx = 0; idx < totalNumLeds; idx++ )
+  {
+    uint8_t b = 0;
+    uint8_t a = 50;
+    uint8_t c = 255;
 
+    if ( offset )
+    {
+      b = 0;
+    }
+    else
+    {
+      b = 255;
+    }
+    
+    //leds[idx].setHSV( a, c, b );
+  }
+  uint8_t hue = 100;
+  uint8_t sat = 255;
+  uint8_t bri = 100;
 
-
-
-
-
-  //FastLED.show()
+  
+  leds[offset].setHSV( hue, sat, bri );
+  leds[offset+1].setHSV( hue, sat, bri );
+  
+  FastLED.show();
+  leds[offset].setHSV( hue, sat, 0 );
+  leds[offset+1].setHSV( hue, sat, 0 );
+  offset+=2;
+  offset %= totalNumLeds;*/
 }
 
 #endif // #if MANUAL_LED_DRIVER
@@ -607,6 +822,7 @@ void setup()
 }
 
 
+int long updateMilli = 0;
 
 //***************************************************************************
 //  
@@ -625,12 +841,16 @@ void loop()
   updateBlinkin();
 #endif
 
-  updateRelays();
-
-  updateRealTimeClock( now );
-
-  updateBatteryVoltage( now );
+  if ( (millis() - updateMilli) > 2000 )
+  {
+    updateMilli = millis();
+    //updateRelays();
+  
+    //updateRealTimeClock( now );
+  
+    //updateBatteryVoltage( now );
+  }
 
   // slow execution delay before next loop
-  delay( 10 );
+  //delay( 5 );
 }
