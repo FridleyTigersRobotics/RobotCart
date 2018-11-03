@@ -35,35 +35,44 @@ int   battVoltageSampCnt = 0;
 
 
 // String IDs (sid)
-int const sidHorn   = 1;
-int const sidLights = 3;
-int const sidInvert = 4;
-int const sidRadio  = 6;
-int const sidXx     = 10;
-int const sidPm     = 11;
-int const sidAm     = 12;
-int const sidVdc    = 14;
+enum string_ids
+{
+  sidHorn,
+  sidLights,
+  sidInvert,
+  sidRadio,
+  sidXx,
+  sidPm,
+  sidAm,
+  sidVdc
+};
 
 // Widget IDs (wid)
-int const widHornButton     = 1;
-int const widLedSlider      = 2;
-int const widLightsCheckbox = 3;
-int const widInvertCheckbox = 4;
-int const widSliderValue    = 5;
-int const widRadioCheckbox  = 6;
-int const widRtcSecond      = 7;
-int const widRtcMinute      = 8;
-int const widRtcHour        = 9;
-int const widAmPmText       = 10;
-int const widVoltageDisplay = 13;
-int const widVdcText        = 14;
+enum widget_ids
+{
+  widHornButton,
+  widLedSlider,
+  widLightsCheckbox,
+  widInvertCheckbox,
+  widSliderValue,
+  widRadioCheckbox,
+  widRtcSecond,
+  widRtcMinute,
+  widRtcHour,
+  widAmPmText,
+  widVoltageDisplay,
+  widVdcText
+};
 
 // Theme IDs (tid)
-int const tidTheme0 = 1;
-int const tidTheme1 = 2;
-int const tidTheme2 = 3;
-int const tidTheme3 = 5;
-int const tidTheme4 = 10;
+enum theme_ids
+{
+  tidTheme0,
+  tidTheme1,
+  tidTheme2,
+  tidTheme3,
+  tidTheme4
+};
 
 // Font IDs (fid)
 int const fidFont0 = 1;
