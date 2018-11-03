@@ -2,7 +2,7 @@
 
 // Just a test of editing this file from the GitHub website.
 
-
+#define LED_TESTING        ( 1 )
 #define MANUAL_LED_DRIVER  ( 1 )
 #define BLINKIN_LED_DRIVER ( !MANUAL_LED_DRIVER )
 
@@ -247,6 +247,18 @@ void updateRelays()
   { 
     if( lcd.currentInfo == PRESSED )
     {
+      digitalWrite( 7, LOW );
+    }
+    else
+    {
+      digitalWrite( 7, HIGH );      
+    }
+  }
+
+  if( widgetId == widInvertCheckbox ) 
+  {
+    if( lcd.currentInfo == PRESSED )
+    {
       digitalWrite( 4, LOW );
     }
     else
@@ -255,7 +267,7 @@ void updateRelays()
     }
   }
 
-  if( widgetId == widInvertCheckbox ) 
+  if( widgetId == widRadioCheckbox ) 
   {
     if( lcd.currentInfo == PRESSED )
     {
@@ -264,18 +276,6 @@ void updateRelays()
     else
     {
       digitalWrite( 6, HIGH );      
-    }
-  }
-
-  if( widgetId == widRadioCheckbox ) 
-  {
-    if( lcd.currentInfo == PRESSED )
-    {
-      digitalWrite( 7, LOW );
-    }
-    else
-    {
-      digitalWrite( 7, HIGH );      
     }
   }
 }
@@ -325,7 +325,7 @@ public:
     leds          = new CRGB[ numLeds ];     
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
-    currentAnimation = LED_ANI_Vu;
+    currentAnimation = LED_ANI_Pong;
     FastLED.addLeds< NEOPIXEL, 9 >( leds, numLeds );
   }
 
@@ -609,6 +609,7 @@ public:
   int      pongWidth;
   int      pongInc;
   int      pongBoundry;
+  int      pongColorSwap = -1;
 
   void Init_Pong( uint8_t hue )
   {
@@ -643,11 +644,11 @@ public:
       {
         if (idxStrip % 2)
         {
-          leds[idx + pongBoundry * idxStrip].setHSV( pongHue, 255, bightness );
+          leds[idx + pongBoundry * idxStrip].setHSV( pongHue + pongColorSwap * (int)50, 255, bightness );
         }
         else
         {
-           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue, 255, bightness );
+           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue - pongColorSwap * (int)50, 255, bightness );
         }
       }
     }
@@ -657,6 +658,12 @@ public:
     {
       pongInc *= -1;
     }
+    if (pongPosition == 0)
+    {
+      pongColorSwap *= -1;
+      pongInc *= -1;
+    }
+    //test 2
   }
 
 
@@ -831,8 +838,6 @@ void setup()
 }
 
 
-int long updateMilli = 0;
-
 //***************************************************************************
 //  
 //
@@ -850,16 +855,20 @@ void loop()
   updateBlinkin();
 #endif
 
-  if ( (millis() - updateMilli) > 2000 )
+
+  if ( !LED_TESTING )
   {
-    updateMilli = millis();
-    //updateRelays();
+    updateRelays();
   
-    //updateRealTimeClock( now );
+    updateRealTimeClock( now );
   
-    //updateBatteryVoltage( now );
+    updateBatteryVoltage( now );
+
+    // This is probably not needed.
+    // Talking with the LCD screen takes significantly longer.
+    //delay( 5 );
   }
 
   // slow execution delay before next loop
-  //delay( 5 );
+
 }
