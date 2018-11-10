@@ -1,9 +1,37 @@
 //Andrew Panning 9/29/2018
-
-
 #include <FastLED.h>
+#include <bitswap.h>
+#include <chipsets.h>
+#include <color.h>
+#include <colorpalettes.h>
+#include <colorutils.h>
+#include <controller.h>
+#include <cpp_compat.h>
+#include <dmx.h>
+#include <FastLED.h>
+#include <fastled_config.h>
+#include <fastled_delay.h>
+#include <fastled_progmem.h>
+#include <fastpin.h>
+#include <fastspi.h>
+#include <fastspi_bitbang.h>
+#include <fastspi_dma.h>
+#include <fastspi_nop.h>
+#include <fastspi_ref.h>
+#include <fastspi_types.h>
+#include <hsv2rgb.h>
+#include <led_sysdefs.h>
+#include <lib8tion.h>
+#include <noise.h>
+#include <pixelset.h>
+#include <pixeltypes.h>
+#include <platforms.h>
+#include <power_mgt.h>
+
+#if 1
 
 
+float dutyCycle = 0;
 
 
 class AnimationPong
@@ -221,7 +249,7 @@ public:
     leds          = new CRGB[ numLeds ];     
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
-    currentAnimation = LED_ANI_Pong;
+    currentAnimation = LED_ANI_Solid;
     FastLED.addLeds< NEOPIXEL, 9 >( leds, numLeds );
     pong = new AnimationPong( leds, ledStripLength, numLedStrips );
   }
@@ -249,8 +277,8 @@ public:
 
       case LED_ANI_Pong:
       {
-        //Init_Pong( 0 );
-        pong->Init( 0 );
+        Init_Pong( 0 );
+        //pong->Init( 0 );
         break;
       }
 
@@ -296,8 +324,8 @@ public:
 
       case LED_ANI_Pong:
       {
-        //Animation_Pong( currentTime );
-        pong->Animation( currentTime );
+        Animation_Pong( currentTime );
+        //pong->Animation( currentTime );
         break;
       }
 
@@ -347,7 +375,8 @@ public:
   {
     for ( int idx = 0; idx < numLeds; idx++ )
     {
-      leds[idx] = CRGB::Black;
+      int hue = dutyCycle * 255.0f;
+      leds[idx].setHSV( hue, 255, 80 );
     }
   }
 
@@ -358,11 +387,11 @@ public:
 
   void Animation_Rainbow( float currentTime )
   {
-    uint8_t const offset = floor( currentTime );
+    uint8_t const offset = floor( currentTime ) * 3;
 
     for ( int idx = 0; idx < numLeds; idx++ )
     {
-      uint8_t const hue = offset + idx*2;
+      uint8_t const hue = offset + idx*4;
       leds[idx].setHSV( hue, 255, 90 );
     }
   }
@@ -605,6 +634,7 @@ void updateLedDriver()
 }
 
 
+CRGB leds[60];
 
 //***************************************************************************
 //  
@@ -613,7 +643,15 @@ void updateLedDriver()
 //***************************************************************************
 void setup()
 {
+  Serial.begin(9600);
+  //pinMode( 9, OUTPUT );
   initializeLedDriver();
+  //FastLED.addLeds< NEOPIXEL, 9 >( leds, 60 );
+  /*for ( int idx = 0; idx < 60; idx++ )
+  {
+    leds[idx].setHSV(idx+100,255,80);
+  }
+  FastLED.show();*/
 }
 
 
@@ -625,5 +663,17 @@ void setup()
 //***************************************************************************
 void loop()
 {
+  unsigned long highTime = pulseIn(8, HIGH);
+  unsigned long lowTime = pulseIn(8, LOW);
+  unsigned long cycleTime = highTime + lowTime;
+  dutyCycle = (((float)highTime / float(cycleTime)) - 0.48) * 2.0;
+
+  Serial.print(dutyCycle);
+  Serial.print("\n");
+  //FastLED.show();
   updateLedDriver();
+  //delay(200);
 }
+
+#endif
+
