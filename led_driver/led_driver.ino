@@ -10,6 +10,15 @@ unsigned long animationChangeTime = 0;
 int           currentAnimationIdx = 0;
 
 
+
+//***************************************************************************
+//  
+//  LedAnimationBase
+//
+//  description: Base class for creating LED animations.
+//               Contains the LED strip information.
+//
+//***************************************************************************
 class LedAnimationBase
 {
 
@@ -39,31 +48,106 @@ public:
 
 
 
+//***************************************************************************
+//  
+//  AnimationSolid
+//
+//  description: Solid color
+//
+//***************************************************************************
+class AnimationSolid : public LedAnimationBase
+{
+
+private:
+  float animationLen;
+  int   vuLedLen;
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init_Solid( )
+  {
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      leds[idx] = CRGB::Black;
+    }
+  }
+
+  void Animation_Solid()
+  {
+    for ( int idx = 0; idx < numLeds; idx++ )
+    {
+      int hue = dutyCycle * 255.0f;
+      leds[idx].setHSV( hue, 255, 255 );
+    }
+  }
+
+
+};
 
 
 
 
+//***************************************************************************
+//  
+//  AnimationPong
+//
+//  description: Moving Rainbow animation.
+//
+//***************************************************************************
+class AnimationRainbow : public LedAnimationBase
+{
+
+private:
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init( )
+  {
+
+  }
+
+  void Animation( float animationProgress )
+  {
+    uint8_t const offset = animationProgress * 255;
+
+    for ( int idx = 0; idx < this->numLeds; idx++ )
+    {
+      uint8_t const hue = offset + idx * 4;
+      leds[idx].setHSV( hue, 255, 255 );
+    }
+  }
+};
 
 
 
-
+//***************************************************************************
+//  
+//  AnimationPong
+//
+//  description: Pong like animation.
+//
+//***************************************************************************
 class AnimationPong : public LedAnimationBase
 {
 
 private:
   uint8_t  hue;
   int      width;
-  int      boundry;
+
 
 public:
-
+  int      boundry;
   using LedAnimationBase::LedAnimationBase;
 
   void Init( uint8_t hue )
   {
     this->hue      = hue;
-    this->width    = 2;
-    this->boundry  = 60;
+    this->width    = 1;
+    this->boundry  = 30;
   }
 
   void Animation( float animationProgress )
@@ -85,8 +169,8 @@ public:
 
     for ( int idx = 0; idx < this->boundry; idx++ )
     {
-      int const minPos = pongPosition - this->width;
-      int const maxPos = pongPosition + this->width;
+      int const minPos = floor(pongPosition - this->width);
+      int const maxPos = ceil(pongPosition + this->width);
       uint8_t bightness = 0;
 
       if ( ( idx > minPos ) && ( idx < maxPos ) )
@@ -116,6 +200,14 @@ public:
 
 
 
+
+//***************************************************************************
+//  
+//  AnimationLarsonScanner
+//
+//  description: 
+//
+//***************************************************************************
 class AnimationLarsonScanner : public LedAnimationBase
 {
 
@@ -126,9 +218,6 @@ private:
 public:
 
   using LedAnimationBase::LedAnimationBase;
-
-
-
 
   void Init( )
   {
@@ -184,7 +273,89 @@ public:
   }
 };
 
+//***************************************************************************
+//  
+//  AnimationVu
+//
+//  description: VU Meter
+//
+//***************************************************************************
+class AnimationVu : public LedAnimationBase
+{
 
+private:
+  float animationLen;
+  int   vuLedLen;
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init( )
+  {
+    this->animationLen = 35;
+    this->vuLedLen     = 60;
+  }
+
+  void Animation( float animationProgress )
+  {
+    uint8_t const numStrips2 = (numLeds + this->vuLedLen) / this->vuLedLen - 1;
+
+    float const vuTime = animationProgress * this->animationLen;
+    
+
+    for ( int idx = 0; idx < this->vuLedLen; idx++ )
+    {
+      int const minPos = 0;
+      int maxPos;
+      uint8_t bightness = 100;
+      uint8_t hue = 96;
+
+      if (vuTime < (this->animationLen/2.0))
+      {
+        maxPos = ceil( (float)this->vuLedLen * (-0.25 * vuTime + 0.05 *vuTime * vuTime) / 
+                       ((float)this->animationLen/2.0) );
+      }
+      else
+      {
+        float vuTime2 = ((float)this->animationLen) - vuTime;
+        maxPos = ceil( (float)this->vuLedLen * (vuTime2 / ((float)this->animationLen/2.0) ));
+      }
+
+    
+      if ( idx > 40 )
+      {
+        hue = 45;
+      }
+      
+      if ( idx > 50 )
+      {
+        hue = 0;
+      }
+
+      if ( ( idx > minPos ) && ( idx < maxPos ) )
+      {
+        bightness = 255;
+      }
+      else
+      {
+        bightness = 0;
+      }
+      
+      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
+      {
+        if (idxStrip % 2)
+        {
+          leds[idx + this->vuLedLen * idxStrip].setHSV( hue, 255, bightness );
+        }
+        else
+        {
+           leds[this->vuLedLen * (idxStrip+1)-idx - 1].setHSV( hue, 255, bightness );
+        }
+      }
+    }
+  }
+};
 
 
 typedef enum
@@ -205,7 +376,13 @@ typedef enum
 
 
 
-
+//***************************************************************************
+//  
+//  LedAnimator
+//
+//  description: Class for running animations on an LED strip.
+//
+//***************************************************************************
 class LedAnimator
 {
 
@@ -221,7 +398,8 @@ private:
 
   AnimationPong          *pong;
   AnimationLarsonScanner *larson;
-
+  AnimationRainbow       *rainbow;
+  AnimationVu            *vu;
 public:
 
 
@@ -238,11 +416,13 @@ public:
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
     timeFold      = 100.0f;
-    currentAnimation = LED_ANI_LarsonScanner;
+    currentAnimation = LED_ANI_Pong;
 
     FastLED.addLeds< NEOPIXEL, gbl_ledDriverPin >( leds, numLeds );
-    pong   = new AnimationPong( leds, ledStripLength, numLedStrips );
-    larson = new AnimationLarsonScanner( leds, ledStripLength, numLedStrips );
+    pong    = new AnimationPong( leds, ledStripLength, numLedStrips );
+    larson  = new AnimationLarsonScanner( leds, ledStripLength, numLedStrips );
+    rainbow = new AnimationRainbow( leds, ledStripLength, numLedStrips );
+    vu      = new AnimationVu( leds, ledStripLength, numLedStrips );
   }
 
   ~LedAnimator()
@@ -254,7 +434,19 @@ public:
     float newSpeed
   )
   {
+    if ( currentAnimation == LED_ANI_Pong)
+    {
+      timeIncrement = 2;
+      int newBoundry = floor(120.0 / pow(2.0, floor(newSpeed*1.5)));
+      if ( pong->boundry != newBoundry )
+      {
+        pong->boundry = newBoundry;
+      } 
+    }
+    else
+    {
       timeIncrement = newSpeed;
+    }
   }
 
 
@@ -282,7 +474,7 @@ public:
 
       case LED_ANI_Raindow:
       {
-        Init_Rainbow();
+        rainbow->Init();
         break;
       }
 
@@ -294,7 +486,7 @@ public:
 
       case LED_ANI_Vu:
       {
-        Init_Vu( );
+        vu->Init( );
         break;
       }
 
@@ -338,7 +530,7 @@ public:
 
       case LED_ANI_Raindow:
       {
-        Animation_Rainbow( currentTime );
+        rainbow->Animation( currentTime / timeFold );
         break;
       }
 
@@ -350,7 +542,7 @@ public:
 
       case LED_ANI_Vu:
       {
-        Animation_Vu( currentTime );
+        vu->Animation( currentTime / timeFold );
         break;
       }
       
@@ -386,6 +578,7 @@ public:
   }
 
 
+
   void Init_Solid( )
   {
     for ( int idx = 0; idx < numLeds; idx++ )
@@ -399,22 +592,6 @@ public:
     for ( int idx = 0; idx < numLeds; idx++ )
     {
       int hue = dutyCycle * 255.0f;
-      leds[idx].setHSV( hue, 255, 255 );
-    }
-  }
-
-  void Init_Rainbow( )
-  {
-
-  }
-
-  void Animation_Rainbow( float currentTime )
-  {
-    uint8_t const offset = floor( currentTime ) * 3;
-
-    for ( int idx = 0; idx < numLeds; idx++ )
-    {
-      uint8_t const hue = offset + idx*4;
       leds[idx].setHSV( hue, 255, 255 );
     }
   }
@@ -473,84 +650,6 @@ public:
       }
     }
 
-  }
-
-
-
-
-  
-  float animationLen;
-  int   vuLedLen;
-  float vuTime;
-  void Init_Vu( )
-  {
-    animationLen = 35;
-    vuLedLen = 60;
-    vuTime = 0;
-    TurnOffLeds();
-  }
-
-  void Animation_Vu( float currentTime )
-  {
-    uint8_t const numStrips2 = (numLeds + vuLedLen) / vuLedLen - 1;
-
-    vuTime += timeIncrement;
-    if ( vuTime >= animationLen )
-    {
-       vuTime -= animationLen;
-    }
-
-    
-
-    for ( int idx = 0; idx < vuLedLen; idx++ )
-    {
-      int const minPos = 0;
-      int maxPos;
-      uint8_t bightness = 100;
-      uint8_t hue = 96;
-
-      if (vuTime < (animationLen/2.0))
-      {
-        maxPos = ceil( (float)vuLedLen * (-0.25 * vuTime + 0.05 *vuTime * vuTime) / ((float)animationLen/2.0) );
-      }
-      else
-      {
-        float vuTime2 = ((float)animationLen) - vuTime;
-        maxPos = ceil( (float)vuLedLen * (vuTime2 / ((float)animationLen/2.0) ));
-      }
-
-    
-      if ( idx > 40 )
-      {
-        hue = 45;
-      }
-      
-      if ( idx > 50 )
-      {
-        hue = 0;
-      }
-
-      if ( ( idx > minPos ) && ( idx < maxPos ) )
-      {
-        bightness = 255;
-      }
-      else
-      {
-        bightness = 0;
-      }
-      
-      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
-      {
-        if (idxStrip % 2)
-        {
-          leds[idx + vuLedLen * idxStrip].setHSV( hue, 255, bightness );
-        }
-        else
-        {
-           leds[vuLedLen * (idxStrip+1)-idx - 1].setHSV( hue, 255, bightness );
-        }
-      }
-    }
   }
 };
 
