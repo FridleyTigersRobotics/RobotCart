@@ -10,6 +10,7 @@ DS3231 Clock; //Clock object to set time
 ezLCD3 lcd; //LCD object
 RTClib RTC; //RTC object
 int ledPatternSel   = 0;
+int lastledPatternSel = 9;
 int sliderval    = 125;
 int lastloophour = 99;
 int adjusthour   = 99;
@@ -17,7 +18,7 @@ int adjusthour   = 99;
 int   lastloopsecond     = 99;
 float battVoltageSampSum = 0.0;
 int   battVoltageSampCnt = 0;
-char  numLEDPatterns=9;
+char  numLEDPatterns=10;
 
 
 // String IDs (sid)
@@ -293,15 +294,26 @@ void updateLEDdriver()
   //set pwm out pin 9
   int const sliderDsiplayValue = sliderval + (ledPatternSel * 1000);
   sliderval = 125 + lcd.wvalue( widLedSlider );
-  lcd.wvalue( widSliderValue, sliderDsiplayValue );//lcd.wvalue( widSliderValue, sliderval );
+  lcd.wvalue( widSliderValue, sliderDsiplayValue );
+  if(lastledPatternSel!=ledPatternSel){
+    lastledPatternSel=ledPatternSel;
+    unsigned long millicapture=millis();
+    int const sendval = (ledPatternSel+1)*10;
+    while((millis()-millicapture)<200){
+      analogWrite( 9, sendval );
+    }
+  }
   analogWrite( 9, sliderval );
 }
+
+
 
 //***************************************************************************
 //  
 //
 //
 //***************************************************************************
+
 void setup()
 {
   initializeLcdDisplay();
