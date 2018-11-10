@@ -1,4 +1,3 @@
-//Andrew Panning 9/29/2018
 #include <FastLED.h>
 #include <bitswap.h>
 #include <chipsets.h>
@@ -28,9 +27,8 @@
 #include <platforms.h>
 #include <power_mgt.h>
 
-#if 1
 
-
+int const outputLEDPin=9;
 float dutyCycle = 0;
 
 
@@ -250,7 +248,7 @@ public:
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
     currentAnimation = LED_ANI_Solid;
-    FastLED.addLeds< NEOPIXEL, 9 >( leds, numLeds );
+    FastLED.addLeds< NEOPIXEL, outputLEDPin >( leds, numLeds );
     pong = new AnimationPong( leds, ledStripLength, numLedStrips );
   }
 
@@ -644,14 +642,7 @@ CRGB leds[60];
 void setup()
 {
   Serial.begin(9600);
-  //pinMode( 9, OUTPUT );
   initializeLedDriver();
-  //FastLED.addLeds< NEOPIXEL, 9 >( leds, 60 );
-  /*for ( int idx = 0; idx < 60; idx++ )
-  {
-    leds[idx].setHSV(idx+100,255,80);
-  }
-  FastLED.show();*/
 }
 
 
@@ -670,10 +661,5 @@ void loop()
 
   Serial.print(dutyCycle);
   Serial.print("\n");
-  //FastLED.show();
   updateLedDriver();
-  //delay(200);
 }
-
-#endif
-
