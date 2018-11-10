@@ -1,85 +1,168 @@
 #include <FastLED.h>
-#include <bitswap.h>
-#include <chipsets.h>
-#include <color.h>
-#include <colorpalettes.h>
-#include <colorutils.h>
-#include <controller.h>
-#include <cpp_compat.h>
-#include <dmx.h>
-#include <FastLED.h>
-#include <fastled_config.h>
-#include <fastled_delay.h>
-#include <fastled_progmem.h>
-#include <fastpin.h>
-#include <fastspi.h>
-#include <fastspi_bitbang.h>
-#include <fastspi_dma.h>
-#include <fastspi_nop.h>
-#include <fastspi_ref.h>
-#include <fastspi_types.h>
-#include <hsv2rgb.h>
-#include <led_sysdefs.h>
-#include <lib8tion.h>
-#include <noise.h>
-#include <pixelset.h>
-#include <pixeltypes.h>
-#include <platforms.h>
-#include <power_mgt.h>
+
+int const gbl_ledStripLength = 60;
+int const gbl_numLedStrips   = 4;
+int const gbl_ledDriverPin   = 9;
 
 
-int const outputLEDPin=9;
-float dutyCycle = 0;
+float         dutyCycle           = 0;
+unsigned long animationChangeTime = 0;
+int           currentAnimationIdx = 0;
 
 
-class AnimationPong
+class LedAnimationBase
 {
 
 private:
-  int length;
-  int numStrips;
-  int numLeds;
-  CRGB *leds;
-
-
-  uint8_t  pongHue;
-  uint16_t pongPosition;
-  int      pongWidth;
-  int      pongInc;
-  int      pongBoundry;
-  int      pongColorSwap = -1;
-
 
 public:
 
-  AnimationPong( 
+  int  stripLength;
+  int  numStrips;
+  int  numLeds;
+  CRGB *leds;
+
+
+  LedAnimationBase( 
     CRGB *leds,
-    int ledStripLength,
-    int numLedStrips
-  );
+    int  stripLength,
+    int  numStrips
+  )
+  { 
+    this->stripLength = stripLength;
+    this->numStrips   = numStrips;
+    this->numLeds     = stripLength * numStrips;
+    this->leds        = leds;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+class AnimationPong : public LedAnimationBase
+{
+
+private:
+  uint8_t  hue;
+  int      width;
+  int      boundry;
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
 
   void Init( uint8_t hue )
   {
-    pongHue      = hue;
-    pongPosition = 0;
-    pongWidth    = 4;
-    pongInc      = 1;
-    pongBoundry  = 30;
+    this->hue      = hue;
+    this->width    = 2;
+    this->boundry  = 60;
   }
 
-  void Animation( float currentTime )
+  void Animation( float animationProgress )
   {
-    uint8_t const offset = floor( currentTime );
-    uint8_t const numStrips2 = (numLeds + pongBoundry) / pongBoundry - 1;
-    for ( int idx = 0; idx < pongBoundry; idx++ )
+    uint8_t const numStrips2        = (this->numLeds + this->boundry) / this->boundry - 1;
+    float   const timeIntoAnimation = animationProgress * this->boundry;
+
+    float pongPosition = 0.0;
+
+
+    if ( animationProgress < 0.5 )
     {
-      int const minPos = pongPosition - pongWidth;
-      int const maxPos = pongPosition + pongWidth;
+        pongPosition = animationProgress * this->boundry * 2;
+    }
+    else
+    {
+        pongPosition = ( 1.0f - animationProgress ) * this->boundry * 2;
+    }
+
+    for ( int idx = 0; idx < this->boundry; idx++ )
+    {
+      int const minPos = pongPosition - this->width;
+      int const maxPos = pongPosition + this->width;
       uint8_t bightness = 0;
 
       if ( ( idx > minPos ) && ( idx < maxPos ) )
       {
-        bightness = 90;
+        bightness = 255;
+      }
+      else
+      {
+        bightness = 0;
+      }
+
+
+      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
+      {
+        if (idxStrip % 2)
+        {
+           this->leds[idx + this->boundry * idxStrip].setHSV( this->hue , 255, bightness );
+        }
+        else
+        {
+           this->leds[this->boundry * (idxStrip+1)-idx-1].setHSV( this->hue, 255, bightness );
+        }
+      }
+    }
+  }
+};
+
+
+
+class AnimationLarsonScanner : public LedAnimationBase
+{
+
+private:
+  int larsonWidth;
+  int larsonBoundry;
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+
+
+
+  void Init( )
+  {
+    larsonWidth   = 4;
+    larsonBoundry = 60;
+  }
+
+  void Animation( float animationProgress )
+  {
+    // Larson scanner is always red
+    uint8_t const hue = 0;
+    uint8_t const numStrips2 = (this->numLeds + this->larsonBoundry) / this->larsonBoundry - 1;
+
+    float position = 0.0;
+
+
+    if ( animationProgress < 0.5 )
+    {
+        position = animationProgress * this->larsonBoundry * 2;
+    }
+    else
+    {
+        position = ( 1.0f - animationProgress ) * this->larsonBoundry * 2;
+    }
+
+    for ( int idx = 0; idx < this->larsonBoundry; idx++ )
+    {
+      int const minPos = position - this->larsonWidth;
+      int const maxPos = position + this->larsonWidth;
+      uint8_t bightness = 0;
+
+      if ( ( idx > minPos ) && ( idx < maxPos ) )
+      {
+        bightness = 255;
       }
       else
       {
@@ -90,46 +173,16 @@ public:
       {
         if (idxStrip % 2)
         {
-          leds[idx + pongBoundry * idxStrip].setHSV( pongHue + pongColorSwap * (int)50, 255, bightness );
+          leds[idx + this->larsonBoundry * idxStrip].setHSV( hue , 255, bightness );
         }
         else
         {
-           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue - pongColorSwap * (int)50, 255, bightness );
+           leds[this->larsonBoundry * (idxStrip+1)-idx-1].setHSV( hue, 255, bightness );
         }
       }
     }
-
-    pongPosition += pongInc;
-    if ( pongPosition >= pongBoundry )
-    {
-      pongInc *= -1;
-    }
-    if (pongPosition == 0)
-    {
-      pongColorSwap *= -1;
-      pongInc *= -1;
-    }
   }
 };
-
-
-
-
-
-
-AnimationPong::AnimationPong( 
-  CRGB *leds,
-  int ledStripLength,
-  int numLedStrips
-)
-{ 
-  length        = ledStripLength;
-  numStrips     = numLedStrips;
-  numLeds       = ledStripLength * numLedStrips;
-  leds          = leds;
-}
-
-
 
 
 
@@ -142,6 +195,7 @@ typedef enum
   LED_ANI_Pong,
   LED_ANI_Vu,
   LED_ANI_Rain,
+  LED_ANI_LarsonScanner,
   NUM_LED_ANIMATIONS
 } led_animation_t;
 
@@ -162,9 +216,11 @@ private:
   CRGB *leds;
   float timeIncrement;
   float currentTime;
+  float timeFold;
   led_animation_t currentAnimation;
 
-  AnimationPong *pong;
+  AnimationPong          *pong;
+  AnimationLarsonScanner *larson;
 
 public:
 
@@ -181,9 +237,12 @@ public:
     leds          = new CRGB[ numLeds ];     
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
-    currentAnimation = LED_ANI_Solid;
-    FastLED.addLeds< NEOPIXEL, outputLEDPin >( leds, numLeds );
-    pong = new AnimationPong( leds, ledStripLength, numLedStrips );
+    timeFold      = 100.0f;
+    currentAnimation = LED_ANI_LarsonScanner;
+
+    FastLED.addLeds< NEOPIXEL, gbl_ledDriverPin >( leds, numLeds );
+    pong   = new AnimationPong( leds, ledStripLength, numLedStrips );
+    larson = new AnimationLarsonScanner( leds, ledStripLength, numLedStrips );
   }
 
   ~LedAnimator()
@@ -229,8 +288,7 @@ public:
 
       case LED_ANI_Pong:
       {
-        Init_Pong( 0 );
-        //pong->Init( 0 );
+        pong->Init( 96 );
         break;
       }
 
@@ -243,6 +301,12 @@ public:
       case LED_ANI_Rain:
       {
         Init_Rain( );
+        break;
+      }
+
+      case LED_ANI_LarsonScanner:
+      {
+        larson->Init();
         break;
       }
 
@@ -259,6 +323,10 @@ public:
   void  Update_Animation()
   {
     currentTime += timeIncrement;
+    if ( currentTime >= timeFold )
+    {
+      currentTime -= timeFold;
+    }
 
     switch ( currentAnimation )
     {
@@ -276,8 +344,7 @@ public:
 
       case LED_ANI_Pong:
       {
-        Animation_Pong( currentTime );
-        //pong->Animation( currentTime );
+        pong->Animation( currentTime / timeFold );
         break;
       }
 
@@ -286,12 +353,16 @@ public:
         Animation_Vu( currentTime );
         break;
       }
-
       
       case LED_ANI_Rain:
       {
         Animation_Rain( currentTime );
-        delay( 50 );
+        break;
+      }
+
+      case LED_ANI_LarsonScanner:
+      {
+        larson->Animation( currentTime / timeFold );
         break;
       }
 
@@ -481,88 +552,12 @@ public:
       }
     }
   }
-
-  
-
-
-  uint8_t  pongHue;
-  uint16_t pongPosition;
-  int      pongWidth;
-  int      pongInc;
-  int      pongBoundry;
-  int      pongColorSwap = -1;
-
-  void Init_Pong( uint8_t hue )
-  {
-    pongHue      = hue;
-    pongWidth    = 4;
-    pongBoundry  = 60;
-    TurnOffLeds();
-  }
-
-  void Animation_Pong( float inTime )
-  {
-    uint8_t const numStrips2 = (numLeds + pongBoundry) / pongBoundry - 1;
-
-    float pongPosition = 0.0;
-
-
-    if ( currentTime < ( pongBoundry * 1.0 ) )
-    {
-        pongPosition = currentTime;
-    }
-    else if ( currentTime < ( pongBoundry * 2.0 ) )
-    {
-        pongPosition = ( pongBoundry * 2.0 ) - currentTime;
-    }
-    else
-    {
-        currentTime = 0;
-    }
-
-    for ( int idx = 0; idx < pongBoundry; idx++ )
-    {
-      int const minPos = pongPosition - pongWidth;
-      int const maxPos = pongPosition + pongWidth;
-      uint8_t bightness = 0;
-
-      if ( ( idx > minPos ) && ( idx < maxPos ) )
-      {
-        bightness = 255;
-      }
-      else
-      {
-        bightness = 0;
-      }
-      
-      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
-      {
-        if (idxStrip % 2)
-        {
-          leds[idx + pongBoundry * idxStrip].setHSV( pongHue , 255, bightness );
-        }
-        else
-        {
-           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue, 255, bightness );
-        }
-      }
-    }
-  }
 };
 
 
 
 
-
-
-int const gbl_ledStripLength = 60;
-int const gbl_numLedStrips   = 4;
-int const ledDriverPin       = 9;
-
-
 LedAnimator *ledDriver = NULL;
-
-
 
 
 
@@ -603,9 +598,6 @@ void setup()
 }
 
 
-
-unsigned long animationChangeTime = 0;
-int currentAnimationIdx = 0;
 
 
 
