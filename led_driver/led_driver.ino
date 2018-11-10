@@ -59,31 +59,27 @@ class AnimationSolid : public LedAnimationBase
 {
 
 private:
-  float animationLen;
-  int   vuLedLen;
 
 public:
 
   using LedAnimationBase::LedAnimationBase;
 
-  void Init_Solid( )
+  void Init()
   {
-    for ( int idx = 0; idx < numLeds; idx++ )
+    for ( int idx = 0; idx < this->numLeds; idx++ )
     {
-      leds[idx] = CRGB::Black;
+      this->leds[idx] = CRGB::Black;
     }
   }
 
-  void Animation_Solid()
+  void Animation()
   {
-    for ( int idx = 0; idx < numLeds; idx++ )
+    for ( int idx = 0; idx < this->numLeds; idx++ )
     {
       int hue = dutyCycle * 255.0f;
-      leds[idx].setHSV( hue, 255, 255 );
+      this->leds[idx].setHSV( hue, 255, 255 );
     }
   }
-
-
 };
 
 
@@ -117,7 +113,7 @@ public:
     for ( int idx = 0; idx < this->numLeds; idx++ )
     {
       uint8_t const hue = offset + idx * 4;
-      leds[idx].setHSV( hue, 255, 255 );
+      this->leds[idx].setHSV( hue, 255, 255 );
     }
   }
 };
@@ -262,11 +258,11 @@ public:
       {
         if (idxStrip % 2)
         {
-          leds[idx + this->larsonBoundry * idxStrip].setHSV( hue , 255, bightness );
+          this->leds[idx + this->larsonBoundry * idxStrip].setHSV( hue , 255, bightness );
         }
         else
         {
-           leds[this->larsonBoundry * (idxStrip+1)-idx-1].setHSV( hue, 255, bightness );
+           this->leds[this->larsonBoundry * (idxStrip+1)-idx-1].setHSV( hue, 255, bightness );
         }
       }
     }
@@ -346,11 +342,11 @@ public:
       {
         if (idxStrip % 2)
         {
-          leds[idx + this->vuLedLen * idxStrip].setHSV( hue, 255, bightness );
+          this->leds[idx + this->vuLedLen * idxStrip].setHSV( hue, 255, bightness );
         }
         else
         {
-           leds[this->vuLedLen * (idxStrip+1)-idx - 1].setHSV( hue, 255, bightness );
+           this->leds[this->vuLedLen * (idxStrip+1)-idx - 1].setHSV( hue, 255, bightness );
         }
       }
     }
@@ -396,6 +392,7 @@ private:
   float timeFold;
   led_animation_t currentAnimation;
 
+  AnimationSolid         *solid;
   AnimationPong          *pong;
   AnimationLarsonScanner *larson;
   AnimationRainbow       *rainbow;
@@ -419,6 +416,7 @@ public:
     currentAnimation = LED_ANI_Pong;
 
     FastLED.addLeds< NEOPIXEL, gbl_ledDriverPin >( leds, numLeds );
+    solid   = new AnimationSolid( leds, ledStripLength, numLedStrips );
     pong    = new AnimationPong( leds, ledStripLength, numLedStrips );
     larson  = new AnimationLarsonScanner( leds, ledStripLength, numLedStrips );
     rainbow = new AnimationRainbow( leds, ledStripLength, numLedStrips );
@@ -468,7 +466,7 @@ public:
     {
       case LED_ANI_Solid:
       {
-        Init_Solid();
+        solid->Init();
         break;
       }
 
@@ -512,7 +510,7 @@ public:
     }
   }
 
-  void  Update_Animation()
+  void Update_Animation( )
   {
     currentTime += timeIncrement;
     if ( currentTime >= timeFold )
@@ -524,7 +522,7 @@ public:
     {
       case LED_ANI_Solid:
       {
-        Animation_Solid();
+        solid->Animation( );
         break;
       }
 
@@ -578,23 +576,6 @@ public:
   }
 
 
-
-  void Init_Solid( )
-  {
-    for ( int idx = 0; idx < numLeds; idx++ )
-    {
-      leds[idx] = CRGB::Black;
-    }
-  }
-
-  void Animation_Solid()
-  {
-    for ( int idx = 0; idx < numLeds; idx++ )
-    {
-      int hue = dutyCycle * 255.0f;
-      leds[idx].setHSV( hue, 255, 255 );
-    }
-  }
 
  
   int *rain;
