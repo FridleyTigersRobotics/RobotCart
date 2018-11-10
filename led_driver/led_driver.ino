@@ -117,8 +117,6 @@ public:
 
 
 
-
-
 AnimationPong::AnimationPong( 
   CRGB *leds,
   int ledStripLength,
@@ -130,29 +128,6 @@ AnimationPong::AnimationPong(
   numLeds       = ledStripLength * numLedStrips;
   leds          = leds;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -173,47 +148,6 @@ typedef enum
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-float const brightArray[16] = {0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.9, 0.8, 0.7, 0.5, 0.3, 0.2, 0.1, 0.0};
 
 
 
@@ -256,6 +190,26 @@ public:
   {
     delete []leds;
   }
+
+  void Change_Speed(
+    float newSpeed
+  )
+  {
+      timeIncrement = newSpeed;
+  }
+
+
+
+  void Change_Animation(
+    led_animation_t newAnimation
+  )
+  {
+    currentAnimation = newAnimation;
+    currentTime      = 0.0f;
+    Init_Animation();
+  }
+
+
 
   void Init_Animation()
   {
@@ -302,7 +256,7 @@ public:
     }
   }
 
-  void Update_Animation()
+  void  Update_Animation()
   {
     currentTime += timeIncrement;
 
@@ -374,7 +328,7 @@ public:
     for ( int idx = 0; idx < numLeds; idx++ )
     {
       int hue = dutyCycle * 255.0f;
-      leds[idx].setHSV( hue, 255, 80 );
+      leds[idx].setHSV( hue, 255, 255 );
     }
   }
 
@@ -390,7 +344,7 @@ public:
     for ( int idx = 0; idx < numLeds; idx++ )
     {
       uint8_t const hue = offset + idx*4;
-      leds[idx].setHSV( hue, 255, 90 );
+      leds[idx].setHSV( hue, 255, 255 );
     }
   }
 
@@ -406,6 +360,7 @@ public:
 
   void Animation_Rain( float currentTime )
   {
+    float const brightArray[16] = {0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.9, 0.8, 0.7, 0.5, 0.3, 0.2, 0.1, 0.0};
     int const dist = 4;
 
     for ( int idx = 0; idx < length; idx++ )
@@ -468,10 +423,10 @@ public:
   {
     uint8_t const numStrips2 = (numLeds + vuLedLen) / vuLedLen - 1;
 
-    vuTime += 1.0f;
+    vuTime += timeIncrement;
     if ( vuTime >= animationLen )
     {
-       vuTime = 0;
+       vuTime -= animationLen;
     }
 
     
@@ -485,12 +440,12 @@ public:
 
       if (vuTime < (animationLen/2.0))
       {
-        maxPos = ceil( (float)vuLedLen * (-0.25 * vuTime + 0.05 *vuTime * vuTime) / (animationLen/2.0) );
+        maxPos = ceil( (float)vuLedLen * (-0.25 * vuTime + 0.05 *vuTime * vuTime) / ((float)animationLen/2.0) );
       }
       else
       {
-        float vuTime2 = (animationLen) - vuTime;
-        maxPos = ceil( (float)vuLedLen * (vuTime2 / (animationLen/2.0) ));
+        float vuTime2 = ((float)animationLen) - vuTime;
+        maxPos = ceil( (float)vuLedLen * (vuTime2 / ((float)animationLen/2.0) ));
       }
 
     
@@ -506,7 +461,7 @@ public:
 
       if ( ( idx > minPos ) && ( idx < maxPos ) )
       {
-        bightness = 80;
+        bightness = 255;
       }
       else
       {
@@ -540,17 +495,31 @@ public:
   void Init_Pong( uint8_t hue )
   {
     pongHue      = hue;
-    pongPosition = 0;
     pongWidth    = 4;
-    pongInc      = 1;
-    pongBoundry  = 30;
+    pongBoundry  = 60;
     TurnOffLeds();
   }
 
-  void Animation_Pong( float currentTime )
+  void Animation_Pong( float inTime )
   {
-    uint8_t const offset = floor( currentTime );
     uint8_t const numStrips2 = (numLeds + pongBoundry) / pongBoundry - 1;
+
+    float pongPosition = 0.0;
+
+
+    if ( currentTime < ( pongBoundry * 1.0 ) )
+    {
+        pongPosition = currentTime;
+    }
+    else if ( currentTime < ( pongBoundry * 2.0 ) )
+    {
+        pongPosition = ( pongBoundry * 2.0 ) - currentTime;
+    }
+    else
+    {
+        currentTime = 0;
+    }
+
     for ( int idx = 0; idx < pongBoundry; idx++ )
     {
       int const minPos = pongPosition - pongWidth;
@@ -559,7 +528,7 @@ public:
 
       if ( ( idx > minPos ) && ( idx < maxPos ) )
       {
-        bightness = 90;
+        bightness = 255;
       }
       else
       {
@@ -570,24 +539,13 @@ public:
       {
         if (idxStrip % 2)
         {
-          leds[idx + pongBoundry * idxStrip].setHSV( pongHue + pongColorSwap * (int)50, 255, bightness );
+          leds[idx + pongBoundry * idxStrip].setHSV( pongHue , 255, bightness );
         }
         else
         {
-           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue - pongColorSwap * (int)50, 255, bightness );
+           leds[pongBoundry * (idxStrip+1)-idx-1].setHSV( pongHue, 255, bightness );
         }
       }
-    }
-
-    pongPosition += pongInc;
-    if ( pongPosition >= pongBoundry )
-    {
-      pongInc *= -1;
-    }
-    if (pongPosition == 0)
-    {
-      pongColorSwap *= -1;
-      pongInc *= -1;
     }
   }
 };
@@ -632,7 +590,6 @@ void updateLedDriver()
 }
 
 
-CRGB leds[60];
 
 //***************************************************************************
 //  
@@ -641,9 +598,15 @@ CRGB leds[60];
 //***************************************************************************
 void setup()
 {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   initializeLedDriver();
 }
+
+
+
+unsigned long animationChangeTime = 0;
+int currentAnimationIdx = 0;
+
 
 
 
@@ -654,12 +617,34 @@ void setup()
 //***************************************************************************
 void loop()
 {
-  unsigned long highTime = pulseIn(8, HIGH);
-  unsigned long lowTime = pulseIn(8, LOW);
-  unsigned long cycleTime = highTime + lowTime;
-  dutyCycle = (((float)highTime / float(cycleTime)) - 0.48) * 2.0;
+  unsigned long const highTime           = pulseIn( 8, HIGH );
+  unsigned long const lowTime            = pulseIn( 8, LOW );
+  unsigned long const cycleTime          = highTime + lowTime;
+  unsigned long const currentMillisecond = millis();
+  float         const dutyCycle2         = (float)highTime / (float)cycleTime;
 
-  Serial.print(dutyCycle);
-  Serial.print("\n");
+  dutyCycle = (((float)highTime / float(cycleTime)) - 0.48) * 1.9;
+
+  if ( !( dutyCycle < 0.0f || dutyCycle > 1.0f ) )
+  {
+    ledDriver->Change_Speed( dutyCycle * 4.0f );
+  }
+
+  if ( ( dutyCycle < 0.0f || dutyCycle > 1.0f ) && 
+       ( (currentMillisecond - animationChangeTime) > 250 ) )
+  { 
+     //Serial.print( dutyCycle2 * 255 );
+     //Serial.print(" ");
+     //Serial.print( dutyCycle );
+     //Serial.print("\n");
+     currentAnimationIdx = floor( 0.5 + ( dutyCycle2 * 255.0 ) / 10.0 );
+
+     animationChangeTime = millis();
+     //currentAnimationIdx++;
+     //currentAnimationIdx %= NUM_LED_ANIMATIONS;
+     ledDriver->Change_Animation( currentAnimationIdx );
+  }
+
+
   updateLedDriver();
 }
