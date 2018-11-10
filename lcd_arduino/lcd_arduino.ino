@@ -5,13 +5,11 @@
 #define LED_PIN 13
 #define METERDIGITS 2
 #define METERDP 0
-#define LEDX 175
-#define LEDY 70
 
 DS3231 Clock; //Clock object to set time
 ezLCD3 lcd; //LCD object
 RTClib RTC; //RTC object
-int sliderVal2   = 0;
+int ledPatternSel   = 0;
 int sliderval    = 125;
 int lastloophour = 99;
 int adjusthour   = 99;
@@ -19,6 +17,7 @@ int adjusthour   = 99;
 int   lastloopsecond     = 99;
 float battVoltageSampSum = 0.0;
 int   battVoltageSampCnt = 0;
+char  numLEDPatterns=9;
 
 
 // String IDs (sid)
@@ -77,7 +76,7 @@ void initializeLcdDisplay()
   lcd.cls( BLACK, WHITE );
   // Is this a user font, or the build in font 0?
 
-  lcd.picture( LEDX-39, LEDY-33, "tiger3.gif" );
+  lcd.picture( 136, 37, "tiger3.gif" );
 
   lcd.font( "mech" );
   lcd.printString( "Fridley Tigers" );
@@ -110,11 +109,9 @@ void initializeLcdDisplay()
 
   lcd.button( widHornButton, 210, 55, 100, 80, 1, 0, 20, tidTheme0, sidHorn );
 
-  //lcd.drawLed( LEDX, LEDY, 12, BLACK, WHITE );
-
 
   //draw digital meter
-  lcd.digitalMeter( widSliderValue, 150, 100, 50, 30, 1, 0, 3, METERDP, tidTheme3 );
+  lcd.digitalMeter( widSliderValue, 150, 100, 50, 30, 1, 0, 4, METERDP, tidTheme3 );
 
 
   //lcd.checkbox( ID, x, y, width, height, option, theme, string);
@@ -134,7 +131,7 @@ void initializeLcdDisplay()
 
   lcd.staticText( widVdcText, 270, 10, 45, 30, 4, tidTheme4, sidVdc );
 
-  lcd.touchZone( widTouchZone,  150, 100, 50, 30, 1 );
+  lcd.touchZone( widTouchZone,  150, 40, 50, 90, 1 );
 
 }
 
@@ -231,12 +228,10 @@ void updateRelays()
     if( lcd.currentInfo == PRESSED )
     {
       digitalWrite( 5, LOW );
-      lcd.drawLed( LEDX, LEDY, 12, RED, WHITE);
     }
     else 
     {
       digitalWrite( 5, HIGH );
-      lcd.drawLed( LEDX, LEDY, 12, BLACK, WHITE);
     }    
   }
 
@@ -280,8 +275,8 @@ void updateRelays()
   {
     if( lcd.currentInfo == PRESSED )
     {
-      sliderVal2++;
-      sliderVal2 %= 5;
+      ledPatternSel ++;
+      ledPatternSel %= numLEDPatterns;
     }
   }
 
@@ -296,8 +291,9 @@ void updateRelays()
 void updateLEDdriver()
 {
   //set pwm out pin 9
+  int const sliderDsiplayValue = sliderval + (ledPatternSel * 1000);
   sliderval = 125 + lcd.wvalue( widLedSlider );
-  lcd.wvalue( widSliderValue, sliderVal2 );//lcd.wvalue( widSliderValue, sliderval );
+  lcd.wvalue( widSliderValue, sliderDsiplayValue );//lcd.wvalue( widSliderValue, sliderval );
   analogWrite( 9, sliderval );
 }
 
