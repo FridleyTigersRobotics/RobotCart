@@ -273,6 +273,54 @@ public:
   }
 };
 
+
+//***************************************************************************
+//  
+//  AnimationStarfield
+//
+//  description: random twinkling lights
+//
+//***************************************************************************
+class Starfield : public LedAnimationBase
+{
+
+private:
+
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init( )
+  {
+    
+  }
+
+  void Animation( float animationProgress )
+  {
+    uint8_t bightness=255;
+    if ( animationProgress < 0.5 )
+    {
+      bightness = animationProgress*2 * 250;
+    }
+    else
+    {
+      bightness = (1-(animationProgress-0.5)*2) * 250;
+    }
+
+    for ( int idx = 0; idx < this->numLeds; idx++ )
+    {
+      leds[idx].setHSV( 0, 0, bightness );// hue, saturation, bightness
+    }
+  }
+};
+
+
+
+
+
+
+
 //***************************************************************************
 //  
 //  AnimationVu
@@ -367,6 +415,7 @@ typedef enum
   LED_ANI_Vu,
   LED_ANI_Rain,
   LED_ANI_LarsonScanner,
+  LED_ANI_Starfield,
   NUM_LED_ANIMATIONS
 } led_animation_t;
 
@@ -400,6 +449,7 @@ private:
   AnimationLarsonScanner *larson;
   AnimationRainbow       *rainbow;
   AnimationVu            *vu;
+  Starfield              *star;
 public:
 
 
@@ -416,13 +466,14 @@ public:
     timeIncrement = 1.0f;
     currentTime   = 0.0f;
     timeFold      = 100.0f;
-    currentAnimation = LED_ANI_Pong;
+    currentAnimation = LED_ANI_Starfield;
 
     FastLED.addLeds< NEOPIXEL, gbl_ledDriverPin >( leds, numLeds );
     pong    = new AnimationPong( leds, ledStripLength, numLedStrips );
     larson  = new AnimationLarsonScanner( leds, ledStripLength, numLedStrips );
     rainbow = new AnimationRainbow( leds, ledStripLength, numLedStrips );
     vu      = new AnimationVu( leds, ledStripLength, numLedStrips );
+    star    = new Starfield( leds, ledStripLength, numLedStrips );
   }
 
   ~LedAnimator()
@@ -502,6 +553,11 @@ public:
         break;
       }
 
+      case LED_ANI_Starfield:
+      {
+        star->Init();
+        break;
+      }
 
       case LED_ANI_None:
       default:
@@ -555,6 +611,12 @@ public:
       case LED_ANI_LarsonScanner:
       {
         larson->Animation( currentTime / timeFold );
+        break;
+      }
+      
+      case LED_ANI_Starfield:
+      {
+        star->Animation( currentTime / timeFold );
         break;
       }
 
