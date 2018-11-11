@@ -84,6 +84,41 @@ public:
 
 
 
+//***************************************************************************
+//  
+//  AnimationSolidCycle
+//
+//  description: Solid color cycleing with time
+//
+//***************************************************************************
+class AnimationSolidCycle : public LedAnimationBase
+{
+
+private:
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init()
+  {
+    for ( int idx = 0; idx < this->numLeds; idx++ )
+    {
+      this->leds[idx] = CRGB::Black;
+    }
+  }
+
+  void Animation( float animationProgress )
+  {
+    for ( int idx = 0; idx < this->numLeds; idx++ )
+    {
+      int hue = animationProgress * 255.0f;
+      this->leds[idx].setHSV( hue, 255, 255 );
+    }
+  }
+};
+
+
 
 //***************************************************************************
 //  
@@ -114,6 +149,212 @@ public:
     {
       uint8_t const hue = offset + idx * 4;
       this->leds[idx].setHSV( hue, 255, 255 );
+    }
+  }
+};
+
+
+
+//***************************************************************************
+//  
+//  AnimationTeamColors
+//
+//  description: Team Colors
+//
+//***************************************************************************
+class AnimationTeamColors : public LedAnimationBase
+{
+
+private:
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init()
+  {
+    for ( int idx = 0; idx < this->numLeds; idx++ )
+    {
+      this->leds[idx] = CRGB::Black;
+    }
+  }
+
+  void Animation( float animationProgress )
+  {
+    //int cnt = 0;
+    //Serial.print(animationProgress);
+    //Serial.print("\n");
+    //uint8_t idxColor = 0;
+    for ( int idx = 0; idx < this->stripLength; idx++ )
+    {
+      float idx2        = animationProgress * 60.0 + idx;
+      uint8_t idxColor  = (uint8_t)idx2%60;//round( idx2 / 4.0 / 4.0 ) % 4;
+      uint8_t hue       = 0;
+      uint8_t bightness = 255;
+      uint8_t sat       = 255;
+
+      if ( idx2 >= 60.0 )
+      {
+        idx2 -= 60.0f;
+      }
+
+      float rem = idx2 - idxColor;
+
+
+      //cnt++;
+      if ( idxColor < 1 )
+      {
+        hue = 35;
+        bightness = 255 * rem;
+      }
+      else if ( idxColor < 14 )
+      {
+        hue = 35;
+      }
+      else if ( idxColor < 15 )
+      {
+        hue = 35;
+        bightness = 255 * (1.0f-rem);
+      }
+      else if  ( idxColor < 30 )
+      {
+        bightness = 0;
+      }
+      else if  ( idxColor < 31 )
+      {
+        sat = 0;
+        bightness = 255 * rem;
+      }
+      else if  ( idxColor < 44 )
+      {
+        sat = 0;
+      }
+      else if  ( idxColor < 45 )
+      {
+        sat = 0;
+        bightness = 255 * (1.0f-rem);
+      }
+      else
+      {
+        bightness = 0;
+      }
+
+      for ( int idxStrip = 0; idxStrip < this->numStrips; idxStrip++ )
+      {
+        this->leds[idx + idxStrip * this->stripLength].setHSV( hue, sat, bightness );
+      }
+    }
+  }
+};
+
+
+
+//***************************************************************************
+//  
+//  AnimationMurica
+//
+//  description:
+//
+//***************************************************************************
+class AnimationMurica : public LedAnimationBase
+{
+
+private:
+
+public:
+
+  using LedAnimationBase::LedAnimationBase;
+
+  void Init()
+  {
+    for ( int idx = 0; idx < this->numLeds; idx++ )
+    {
+      this->leds[idx] = CRGB::Black;
+    }
+  }
+
+  void Animation( float animationProgress )
+  {
+    //int cnt = 0;
+    //Serial.print(animationProgress);
+    //Serial.print("\n");
+    //uint8_t idxColor = 0;
+    for ( int idx = 0; idx < this->stripLength; idx++ )
+    {
+      float   idx2        = idx;//animationProgress * 60.0 + idx;
+      uint8_t idxColor  = ((uint8_t)idx2%60) / 4;//round( idx2 / 4.0 / 4.0 ) % 4;
+      uint8_t hue       = 0;
+      uint8_t bightness = 255 * dutyCycle;
+      uint8_t sat       = 255;
+
+      if ( idx2 >= 60.0 )
+      {
+        idx2 -= 60.0f;
+      }
+
+      float rem = idx2 - idxColor;
+
+      if ( idxColor == 0 || idxColor == 14 )
+      {
+        bightness = 0;
+      }
+      else
+      {
+        if ( idxColor % 2 )
+        {
+          sat = 255;
+        }
+        else
+        {
+          sat = 0;
+        }
+      }
+
+      for ( int idxStrip = 0; idxStrip < this->numStrips; idxStrip++ )
+      {
+        if ( idxStrip == 1 || idxStrip == 2 )
+        {
+          hue = 0;
+          if ( !(idxColor == 0 || idxColor == 14) )
+          {
+            if ( idxColor % 2 )
+            {
+              sat = 255;
+            }
+            else
+            {
+              sat = 0;
+            }
+          }
+
+          this->leds[idx + idxStrip * this->stripLength].setHSV( hue, sat, bightness );
+        }
+        else
+        {
+          if ( !(idxColor == 0 || idxColor == 14) )
+          {
+            if ( idxColor < 8 )
+            {
+              hue = 0;
+              if ( idxColor % 2 )
+              {
+                sat = 255;
+              }
+              else
+              {
+                sat = 0;
+              }
+            }
+            else
+            {
+              hue = 160;
+              sat = 255;
+            }
+          }
+
+          this->leds[idx + idxStrip * this->stripLength].setHSV( hue, sat, bightness );
+        }
+      }
     }
   }
 };
@@ -269,7 +510,8 @@ public:
   }
 };
 
-
+uint8_t gbl_ledProgress[240];
+uint8_t gbl_ledColor[240];
 //***************************************************************************
 //  
 //  AnimationStarfield
@@ -281,32 +523,96 @@ class Starfield : public LedAnimationBase
 {
 
 private:
-
-
+  float *ledProgress;
+  float ledProgressInc;
+  float ledProgressMax;
+  bool  randomColor;
 public:
-
+  uint16_t randMod;
   using LedAnimationBase::LedAnimationBase;
 
-  void Init( )
+  void Init( bool randomColor, float ledProgressMax )
   {
-    
+      this->randMod        = 1000;
+      this->ledProgressInc = 1;
+      this->ledProgressMax = ledProgressMax;
+      this->randomColor    = randomColor;
+      srand( 0x1337 );
+
+      for ( int idx = 0; idx < this->numLeds; idx++ )
+      {
+        gbl_ledProgress[idx] = 0;
+      }
   }
 
   void Animation( float animationProgress )
   {
-    uint8_t bightness=255;
-    if ( animationProgress < 0.5 )
+    for ( int idx = 0; idx < this->numLeds; idx++ )
     {
-      bightness = animationProgress*2 * 250;
-    }
-    else
-    {
-      bightness = (1-(animationProgress-0.5)*2) * 250;
+      if ( gbl_ledProgress[idx] == 0 )
+      {
+        if ( ( rand() % this->randMod ) == 0 )
+        {
+          gbl_ledProgress[idx] = this->ledProgressInc;
+          gbl_ledColor[idx]    = rand() % 3;
+        }
+      }
+      else if ( gbl_ledProgress[idx] >= this->ledProgressMax )
+      {
+        gbl_ledProgress[idx] = 0;
+      }
+      else
+      {
+        gbl_ledProgress[idx] += this->ledProgressInc;
+      }
     }
 
     for ( int idx = 0; idx < this->numLeds; idx++ )
     {
-      leds[idx].setHSV( 0, 0, bightness );// hue, saturation, bightness
+      uint8_t hue = 0;
+      uint8_t sat = 0;
+      uint8_t bightness = 0;
+      uint8_t mult = 256 / this->ledProgressMax;
+
+      if ( gbl_ledProgress[idx] < ( this->ledProgressMax / 2 ) )
+      {
+        bightness = gbl_ledProgress[idx] * 2 * mult;
+      }
+      else
+      {
+        uint16_t progress;
+        if ( gbl_ledProgress[idx] > this->ledProgressMax )
+        {
+          progress = this->ledProgressMax;
+        }
+        else
+        {
+          progress = gbl_ledProgress[idx];
+        }
+        bightness = mult * ( this->ledProgressMax - ( progress - ( this->ledProgressMax / 2 ) ) * 2 );
+      }
+
+      if ( this->randomColor )
+      {
+        if ( gbl_ledColor[idx] == 0 )
+        {
+          hue = 0 + dutyCycle * 256;
+          sat = 255;   
+        }
+        else if ( gbl_ledColor[idx] == 1 )
+        {
+          hue = 170 + dutyCycle * 256;
+          sat = 255;   
+        }
+        else
+        {
+          hue = 0;
+          sat = 0;   
+        }
+
+      }
+
+      this->leds[idx].setHSV( hue, sat, bightness );
     }
   }
 };
@@ -406,19 +712,22 @@ typedef enum
 {
   LED_ANI_None,
   LED_ANI_Solid,
+  LED_ANI_SolidCycle,
   LED_ANI_Raindow,
   LED_ANI_Pong,
   LED_ANI_Vu,
-  LED_ANI_Rain,
   LED_ANI_LarsonScanner,
   LED_ANI_Starfield,
+  LED_ANI_Confetti,
+  LED_ANI_TeamColors,
+  LED_ANI_Murica,
   NUM_LED_ANIMATIONS
 } led_animation_t;
 
 
 
 
-
+//CRGB gbl_leds[ 240 ];
 
 
 //***************************************************************************
@@ -447,6 +756,9 @@ private:
   AnimationRainbow       *rainbow;
   AnimationVu            *vu;
   Starfield              *star;
+  AnimationSolidCycle    *solidCycle;
+  AnimationTeamColors    *teamColors;
+  AnimationMurica        *murica;
 public:
 
 
@@ -456,36 +768,45 @@ public:
     int numLedStrips
   )
   { 
-    length        = ledStripLength;
-    numStrips     = numLedStrips;
-    numLeds       = ledStripLength * numLedStrips;
-    leds          = new CRGB[ numLeds ];     
-    timeIncrement = 1.0f;
-    currentTime   = 0.0f;
-    timeFold      = 100.0f;
-    currentAnimation = LED_ANI_Starfield;
+    this->length        = ledStripLength;
+    this->numStrips     = numLedStrips;
+    this->numLeds       = ledStripLength * numLedStrips;
+    this->leds          = new CRGB[ this->numLeds ];     
+    this->timeIncrement = 1.0f;
+    this->currentTime   = 0.0f;
+    this->timeFold      = 100.0f;
+    this->currentAnimation = LED_ANI_Solid;
 
-    FastLED.addLeds< NEOPIXEL, gbl_ledDriverPin >( leds, numLeds );
-    solid   = new AnimationSolid( leds, ledStripLength, numLedStrips );
-    pong    = new AnimationPong( leds, ledStripLength, numLedStrips );
-    larson  = new AnimationLarsonScanner( leds, ledStripLength, numLedStrips );
-    rainbow = new AnimationRainbow( leds, ledStripLength, numLedStrips );
-    vu      = new AnimationVu( leds, ledStripLength, numLedStrips );
-    star    = new Starfield( leds, ledStripLength, numLedStrips );
+    FastLED.addLeds< NEOPIXEL, gbl_ledDriverPin >( this->leds, this->numLeds );
+    this->solid      = new AnimationSolid( this->leds, this->length, this->numStrips );
+    this->pong       = new AnimationPong( this->leds, this->length, this->numStrips );
+    this->larson     = new AnimationLarsonScanner( this->leds, this->length, this->numStrips );
+    this->rainbow    = new AnimationRainbow( this->leds, this->length, this->numStrips );
+    this->vu         = new AnimationVu( this->leds, this->length, this->numStrips );
+    this->star       = new Starfield( this->leds, this->length, this->numStrips );
+    this->solidCycle = new AnimationSolidCycle( this->leds, this->length, this->numStrips ); 
+    this->teamColors = new AnimationTeamColors( this->leds, this->length, this->numStrips ); 
+    this->murica     = new AnimationMurica( this->leds, this->length, this->numStrips );
   }
 
   ~LedAnimator()
   {
-    delete []leds;
+    delete []this->leds;
   }
 
   void Change_Speed(
     float newSpeed
   )
   {
-    if ( currentAnimation == LED_ANI_Pong)
+    if ( this->currentAnimation == LED_ANI_Starfield)
     {
-      timeIncrement = 2;
+      this->timeIncrement = 2;
+      int newBoundry = floor( 1000 / pow(3, floor(newSpeed)));
+      star->randMod = newBoundry;
+    }
+    else if ( currentAnimation == LED_ANI_Pong)
+    {
+      this->timeIncrement = 2;
       int newBoundry = floor(120.0 / pow(2.0, floor(newSpeed*1.5)));
       if ( pong->boundry != newBoundry )
       {
@@ -494,7 +815,7 @@ public:
     }
     else
     {
-      timeIncrement = newSpeed;
+      this->timeIncrement = newSpeed;
     }
   }
 
@@ -504,8 +825,8 @@ public:
     led_animation_t newAnimation
   )
   {
-    currentAnimation = newAnimation;
-    currentTime      = 0.0f;
+    this->currentAnimation = newAnimation;
+    this->currentTime      = 0.0f;
     Init_Animation();
   }
 
@@ -513,47 +834,66 @@ public:
 
   void Init_Animation()
   {
-    switch ( currentAnimation )
+    switch ( this->currentAnimation )
     {
       case LED_ANI_Solid:
       {
-        solid->Init();
+        this->solid->Init();
+        break;
+      }
+
+      case LED_ANI_SolidCycle:
+      {
+        this->solidCycle->Init();
         break;
       }
 
       case LED_ANI_Raindow:
       {
-        rainbow->Init();
+        this->rainbow->Init();
         break;
       }
 
       case LED_ANI_Pong:
       {
-        pong->Init( 96 );
+        this->pong->Init( 96 );
         break;
       }
 
       case LED_ANI_Vu:
       {
-        vu->Init( );
-        break;
-      }
-
-      case LED_ANI_Rain:
-      {
-        Init_Rain( );
+        this->vu->Init( );
         break;
       }
 
       case LED_ANI_LarsonScanner:
       {
-        larson->Init();
+        this->larson->Init();
         break;
       }
 
       case LED_ANI_Starfield:
       {
-        star->Init();
+        this->star->Init( false, 60  );
+        break;
+      }
+
+      case LED_ANI_Confetti:
+      {
+        this->star->Init( true, 15 );
+        this->star->randMod = 30;
+        break;
+      }
+
+      case LED_ANI_TeamColors:
+      {
+        this->teamColors->Init( );
+        break;
+      }
+
+      case LED_ANI_Murica:
+      {
+        this->murica->Init( );
         break;
       }
 
@@ -568,53 +908,71 @@ public:
 
   void Update_Animation( )
   {
-    currentTime += timeIncrement;
-    if ( currentTime >= timeFold )
+    this->currentTime += this->timeIncrement;
+    if ( this->currentTime >= this->timeFold )
     {
-      currentTime -= timeFold;
+      this->currentTime -= this->timeFold;
     }
 
-    switch ( currentAnimation )
+    switch ( this->currentAnimation )
     {
       case LED_ANI_Solid:
       {
-        solid->Animation( );
+        this->solid->Animation( );
+        break;
+      }
+
+      case LED_ANI_SolidCycle:
+      {
+        this->solidCycle->Animation( currentTime / timeFold );
         break;
       }
 
       case LED_ANI_Raindow:
       {
-        rainbow->Animation( currentTime / timeFold );
+        this->rainbow->Animation( currentTime / timeFold );
         break;
       }
 
       case LED_ANI_Pong:
       {
-        pong->Animation( currentTime / timeFold );
+        this->pong->Animation( currentTime / timeFold );
         break;
       }
 
       case LED_ANI_Vu:
       {
-        vu->Animation( currentTime / timeFold );
-        break;
-      }
-      
-      case LED_ANI_Rain:
-      {
-        Animation_Rain( currentTime );
+        this->vu->Animation( currentTime / timeFold );
         break;
       }
 
       case LED_ANI_LarsonScanner:
       {
-        larson->Animation( currentTime / timeFold );
+        this->larson->Animation( currentTime / timeFold );
         break;
       }
       
       case LED_ANI_Starfield:
       {
-        star->Animation( currentTime / timeFold );
+        this->star->Animation( currentTime / timeFold );
+        break;
+      }
+
+      case LED_ANI_Confetti:
+      {
+        this->star->Animation( currentTime / timeFold );
+        break;
+      }
+
+      case LED_ANI_TeamColors:
+      {
+        this->teamColors->Animation( currentTime / timeFold );
+        break;
+      }
+
+      case LED_ANI_Murica:
+      {
+        this->murica->Animation( currentTime / timeFold );
         break;
       }
 
@@ -631,68 +989,10 @@ public:
 
   void TurnOffLeds()
   {
-    for ( int idx = 0; idx < numLeds; idx++ )
+    for ( int idx = 0; idx < this->numLeds; idx++ )
     {
-      leds[idx] = CRGB::Black;
+      this->leds[idx] = CRGB::Black;
     }
-  }
-
-
-
- 
-  int *rain;
-
-  void Init_Rain( )
-  {
-    rain = new int[length];
-    //memset( rain, 0, sizeof(*rain) * length );
-    srand(millis());
-  }
-
-  void Animation_Rain( float currentTime )
-  {
-    float const brightArray[16] = {0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.9, 0.8, 0.7, 0.5, 0.3, 0.2, 0.1, 0.0};
-    int const dist = 4;
-
-    for ( int idx = 0; idx < length; idx++ )
-    {
-      if ( rain[idx] == 0 )
-      {
-        if ((rand()%1000) == 0)
-        {
-          rain[idx] = 1;
-        }
-      }
-      else if ( rain[idx] > (14 + dist) )
-      {
-        rain[idx] = 0;
-      }
-      else
-      {
-        rain[idx]++;
-      }
-    }
-    float bightness = 190;
-    uint8_t hue = 96;
-    for ( int idx = 0; idx < length; idx++ )
-    {
-      int rainValue = rain[idx];
-      if ( rain[idx] == 0 )
-      {
-        leds[idx].setHSV( hue, 255, 0 );
-        leds[length*2 - idx - 1].setHSV( hue, 255, 0 );
-      }
-      else
-      {
-        int topIdx = (rainValue < 16) ? rainValue : 15;
-        int botIdx = ((rainValue-dist) > 0) ? (rainValue-dist) : 0;
-        uint8_t topBri = bightness * brightArray[topIdx];
-        uint8_t botBri = bightness * brightArray[botIdx];
-        leds[idx].setHSV( hue, 255, topBri );
-        leds[length*2 - idx - 1].setHSV( hue, 255, botBri );
-      }
-    }
-
   }
 };
 
@@ -740,8 +1040,10 @@ void setup()
 }
 
 
+int dutyCycleMeasCnt = 0;
 
-
+uint8_t const numAnimations = 11;
+uint8_t newAnimationIdxCnt[numAnimations] = { 0 };
 
 
 //***************************************************************************
@@ -762,21 +1064,43 @@ void loop()
   if ( !( dutyCycle < 0.0f || dutyCycle > 1.0f ) )
   {
     ledDriver->Change_Speed( dutyCycle * 4.0f );
+    dutyCycleMeasCnt = 0;
   }
 
-  if ( ( dutyCycle < 0.0f || dutyCycle > 1.0f ) && 
-       ( (currentMillisecond - animationChangeTime) > 250 ) )
+  if ( ( dutyCycle < 0.0f || dutyCycle > 1.0f ) )
   { 
-     //Serial.print( dutyCycle2 * 255 );
-     //Serial.print(" ");
-     //Serial.print( dutyCycle );
-     //Serial.print("\n");
-     currentAnimationIdx = floor( 0.5 + ( dutyCycle2 * 255.0 ) / 10.0 );
+    bool newAnimationFound = false;
+    int newAnimationIdx = floor( 0.5 + ( dutyCycle2 * 255.0 ) / 10.0 );  
 
-     animationChangeTime = millis();
-     //currentAnimationIdx++;
-     //currentAnimationIdx %= NUM_LED_ANIMATIONS;
-     ledDriver->Change_Animation( currentAnimationIdx );
+    dutyCycleMeasCnt++;
+    if ( newAnimationIdx < numAnimations )
+    {
+      newAnimationIdxCnt[newAnimationIdx]++;
+    }
+
+    for ( int idx = 0; idx < numAnimations; idx++ )
+    {
+      if ( newAnimationIdxCnt[idx] > 2 )
+      {
+        newAnimationIdx   = idx;
+        newAnimationFound = true;
+        break;
+      }
+    }
+
+    if ( newAnimationFound == true )
+    {
+      if ( newAnimationIdx != currentAnimationIdx )
+      {
+        ledDriver->Change_Animation( newAnimationIdx );
+        currentAnimationIdx = newAnimationIdx;
+      }
+      dutyCycleMeasCnt = 0;
+      for ( int idx = 0; idx < numAnimations; idx++ )
+      {
+        newAnimationIdxCnt[idx] = 0;
+      }
+    }
   }
 
 
