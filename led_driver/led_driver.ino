@@ -333,7 +333,7 @@ public:
         {
           if ( !(idxColor == 0 || idxColor == 14) )
           {
-            if ( idxColor < 8 )
+            if ( idxColor < 7 )
             {
               hue = 0;
               if ( idxColor % 2 )
