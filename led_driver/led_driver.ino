@@ -1,6 +1,6 @@
 #include <FastLED.h>
 
-int const gbl_ledStripLength = 60;
+int const gbl_ledStripLength = 58;
 int const gbl_numLedStrips   = 4;
 int const gbl_ledDriverPin   = 9;
 
@@ -181,55 +181,52 @@ public:
 
   void Animation( float animationProgress )
   {
-    //int cnt = 0;
-    //Serial.print(animationProgress);
-    //Serial.print("\n");
-    //uint8_t idxColor = 0;
+    uint8_t const hue0 = 0;
+    uint8_t const hue1 = 35;
+
     for ( int idx = 0; idx < this->stripLength; idx++ )
     {
-      float idx2        = animationProgress * 60.0 + idx;
-      uint8_t idxColor  = (uint8_t)idx2%60;//round( idx2 / 4.0 / 4.0 ) % 4;
-      uint8_t hue       = 0;
-      uint8_t bightness = 255;
-      uint8_t sat       = 255;
+      float   idx2           = animationProgress * (float)this->stripLength + idx;
+      uint8_t idxNormalized  = (uint8_t)idx2 % ( this->stripLength );
+      uint8_t hue            = hue0;
+      uint8_t bightness      = 255;
+      uint8_t sat            = 255;
 
-      if ( idx2 >= 60.0 )
+      if ( idx2 >= this->stripLength )
       {
-        idx2 -= 60.0f;
+         idx2 -= this->stripLength;
       }
 
-      float rem = idx2 - idxColor;
+      float rem = idx2 - idxNormalized;
 
-
-      //cnt++;
-      if ( idxColor < 1 )
+      if ( idxNormalized < 1 )
       {
-        hue = 35;
+        hue = hue1;
         bightness = 255 * rem;
       }
-      else if ( idxColor < 14 )
+      else if ( idxNormalized < 14 )
       {
-        hue = 35;
+        hue = hue1;
       }
-      else if ( idxColor < 15 )
+      else if ( idxNormalized < 15 )
       {
-        hue = 35;
+        hue = hue1;
         bightness = 255 * (1.0f-rem);
       }
-      else if  ( idxColor < 30 )
+      else if  ( idxNormalized < 29 )
       {
         bightness = 0;
       }
-      else if  ( idxColor < 31 )
+      else if  ( idxNormalized < 30 )
       {
         sat = 0;
         bightness = 255 * rem;
       }
-      else if  ( idxColor < 44 )
+      else if  ( idxNormalized < 43 )
       {
         sat = 0;
       }
-      else if  ( idxColor < 45 )
+      else if  ( idxNormalized < 44 )
       {
         sat = 0;
         bightness = 255 * (1.0f-rem);
@@ -275,32 +272,20 @@ public:
 
   void Animation( float animationProgress )
   {
-    //int cnt = 0;
-    //Serial.print(animationProgress);
-    //Serial.print("\n");
-    //uint8_t idxColor = 0;
     for ( int idx = 0; idx < this->stripLength; idx++ )
     {
-      float   idx2        = idx;//animationProgress * 60.0 + idx;
-      uint8_t idxColor  = ((uint8_t)idx2%60) / 4;//round( idx2 / 4.0 / 4.0 ) % 4;
-      uint8_t hue       = 0;
-      uint8_t bightness = 255 * dutyCycle;
-      uint8_t sat       = 255;
+      uint8_t idxNormalized = ( (uint8_t) ( idx + 1 ) % ( this->stripLength ) ) / 4;
+      uint8_t hue           = 0;
+      uint8_t bightness     = 255 * dutyCycle;
+      uint8_t sat           = 255;
 
-      if ( idx2 >= 60.0 )
-      {
-        idx2 -= 60.0f;
-      }
-
-      float rem = idx2 - idxColor;
-
-      if ( idxColor == 0 || idxColor == 14 )
+      if ( idxNormalized == 0 || idxNormalized == 14 )
       {
         bightness = 0;
       }
       else
       {
-        if ( idxColor % 2 )
+        if ( idxNormalized % 2 )
         {
           sat = 255;
         }
@@ -315,9 +300,9 @@ public:
         if ( idxStrip == 1 || idxStrip == 2 )
         {
           hue = 0;
-          if ( !(idxColor == 0 || idxColor == 14) )
+          if ( !(idxNormalized == 0 || idxNormalized == 14) )
           {
-            if ( idxColor % 2 )
+            if ( idxNormalized % 2 )
             {
               sat = 255;
             }
@@ -331,12 +316,12 @@ public:
         }
         else
         {
-          if ( !(idxColor == 0 || idxColor == 14) )
+          if ( !(idxNormalized == 0 || idxNormalized == 14) )
           {
-            if ( idxColor < 7 )
+            if ( idxNormalized < 7 )
             {
               hue = 0;
-              if ( idxColor % 2 )
+              if ( idxNormalized % 2 )
               {
                 sat = 255;
               }
@@ -384,7 +369,7 @@ public:
   {
     this->hue      = hue;
     this->width    = 1;
-    this->boundry  = 30;
+    this->boundry  = this->stripLength / 2;
   }
 
   void Animation( float animationProgress )
@@ -459,7 +444,7 @@ public:
   void Init( )
   {
     larsonWidth   = 4;
-    larsonBoundry = 60;
+    larsonBoundry = this->stripLength;
   }
 
   void Animation( float animationProgress )
@@ -644,16 +629,13 @@ public:
   void Init( )
   {
     this->animationLen = 35;
-    this->vuLedLen     = 60;
+    this->vuLedLen     = this->stripLength;
   }
 
   void Animation( float animationProgress )
   {
-    uint8_t const numStrips2 = (numLeds + this->vuLedLen) / this->vuLedLen - 1;
-
     float const vuTime = animationProgress * this->animationLen;
     
-
     for ( int idx = 0; idx < this->vuLedLen; idx++ )
     {
       int const minPos = 0;
@@ -673,12 +655,12 @@ public:
       }
 
     
-      if ( idx > 40 )
+      if ( idx > ( this->vuLedLen * 2 / 3 ) )
       {
         hue = 45;
       }
       
-      if ( idx > 50 )
+      if ( idx > ( this->vuLedLen * 5 / 6 ) )
       {
         hue = 0;
       }
@@ -692,7 +674,7 @@ public:
         bightness = 0;
       }
       
-      for ( int idxStrip = 0; idxStrip < numStrips2; idxStrip++ )
+      for ( int idxStrip = 0; idxStrip < this->numStrips; idxStrip++ )
       {
         if (idxStrip % 2)
         {
@@ -801,13 +783,13 @@ public:
     if ( this->currentAnimation == LED_ANI_Starfield)
     {
       this->timeIncrement = 2;
-      int newBoundry = floor( 1000 / pow(3, floor(newSpeed)));
-      star->randMod = newBoundry;
+      int newRandMod = floor( 1000 / pow(3, floor(newSpeed)));
+      star->randMod = newRandMod;
     }
     else if ( currentAnimation == LED_ANI_Pong)
     {
       this->timeIncrement = 2;
-      int newBoundry = floor(120.0 / pow(2.0, floor(newSpeed*1.5)));
+      int newBoundry = floor( ( (float)this->length * 2.0 ) / pow(2.0, floor(newSpeed*1.5)));
       if ( pong->boundry != newBoundry )
       {
         pong->boundry = newBoundry;
@@ -874,7 +856,7 @@ public:
 
       case LED_ANI_Starfield:
       {
-        this->star->Init( false, 60  );
+        this->star->Init( false, 60 );
         break;
       }
 
