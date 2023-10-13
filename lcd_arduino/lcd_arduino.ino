@@ -1,12 +1,19 @@
+#include <ezLCDLib.h>
 #include <SHA256.h>
 #include <DS3231.h>
-
-#include <ezLCDLib.h>
 #include <Wire.h>
 
-#define LED_PIN 13
+
+#define INVERTER_PIN    ( 4 )
+#define HORN_OUT_PIN    ( 5 )
+#define RADIO_PIN       ( 6 )
+#define LED_ENABLE_PIN  ( 7 )
+#define HORN_IN_0_PIN   ( 8 )
+#define LED_CONTROL_PIN ( 9 )
+#define BOARD_LED_PIN   ( 13 )
+
 #define METERDIGITS 2
-#define METERDP 0
+#define METERDP     0
 
 DS3231 Clock; //Clock object to set time
 ezLCD3 lcd; //LCD object
@@ -27,6 +34,11 @@ unsigned int timeAdjustHour  = 0;
 unsigned int timeAdjustMinHi = 0;
 unsigned int timeAdjustMinLo = 0;
 bool         timeAdjustIsPm  = false;
+
+
+
+#define HORN_ENABLE_MAX ( 5 )
+unsigned int hornEnableCount = 0;
 
 #define MAX_NUM_NUMPAD_ENTRIES ( 20 )
 char numpadEntry[MAX_NUM_NUMPAD_ENTRIES + 1] = { 0 };
@@ -202,7 +214,10 @@ void DrawMainScreen()
   lcd.print( "\\[0x" );
   lcd.printString( "2 2 2 7" );
 
-  lcd.button( widHornButton, 210, 55, 100, 80, 1, 0, 20, tidTheme0, sidHorn );
+  //lcd.button( widHornButton, 210, 55, 100, 80, 1, 0, 20, tidTheme0, sidHorn );
+  //d.slider( widLedSlider,  150, 145, 160, 40, 5, 125, 1, 0, tidTheme1 );
+  //lcd.slider( widHornButton, 210,  55, 100, 40, 5, 0,  20, 0, tidTheme1 );
+  
   lcd.digitalMeter( widSliderValue, 150, 100, 50, 30, 1, 0, 4, METERDP, tidTheme3 );
 
   //lcd.checkbox( ID, x, y, width, height, option, theme, string);
@@ -434,6 +449,35 @@ void updateRealTimeClock(
 
 
 
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
+void updateHornControl( 
+  boolean enableHorn
+)
+{
+  if ( enableHorn )
+  {
+    if ( hornEnableCount > HORN_ENABLE_MAX )
+    {
+      digitalWrite( HORN_OUT_PIN, HIGH );
+    }
+    else
+    {
+      hornEnableCount++;
+      digitalWrite( HORN_OUT_PIN, LOW );
+    }
+  }
+  else
+  {
+    hornEnableCount = 0;
+    digitalWrite( HORN_OUT_PIN, HIGH );
+  }
+}
+
+
 
 //***************************************************************************
 //  
@@ -442,7 +486,7 @@ void updateRealTimeClock(
 //***************************************************************************
 void updateLEDdriver()
 {
-  //set pwm out pin 9
+  // Set pwm out on LED_CONTROL_PIN
   int const sliderDsiplayValue = sliderval + (ledPatternSel * 1000);
   sliderval = 125 + lcd.wvalue( widLedSlider );
   lcd.wvalue( widSliderValue, sliderDsiplayValue );
@@ -453,45 +497,46 @@ void updateLEDdriver()
     int const sendval = ( ledPatternSel + 1 ) * 10;
     while( ( millis() - millicapture ) < 200 )
     {
-      analogWrite( 9, sendval );
+      analogWrite( LED_CONTROL_PIN, sendval );
     }
   }
-  analogWrite( 9, sliderval );
+  analogWrite( LED_CONTROL_PIN, sliderval );
 }
 
 
 
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
 void ServiceMainScreen( void )
 {
   int const widgetId = lcd.wstack( FIFO );
+
+  if ( digitalRead( HORN_IN_0_PIN ) )
+  {
+     updateHornControl( true );
+  }
+  else
+  {
+     updateHornControl( false );
+  }
 
 
   DateTime now = RTC.now();
 
   switch ( widgetId )
   {
-    case widHornButton:
-    {
-      if( lcd.currentInfo == PRESSED )
-      {
-        digitalWrite( 5, LOW );
-      }
-      else
-      {
-        digitalWrite( 5, HIGH );      
-      }
-      break;
-    }
-
     case widLightsCheckbox:
     {
       if( lcd.currentInfo == PRESSED )
       {
-        digitalWrite( 7, LOW );
+        digitalWrite( LED_ENABLE_PIN, LOW );
       }
       else
       {
-        digitalWrite( 7, HIGH );      
+        digitalWrite( LED_ENABLE_PIN, HIGH );      
       }
       break;
     }
@@ -500,11 +545,11 @@ void ServiceMainScreen( void )
     {
       if( lcd.currentInfo == PRESSED )
       {
-        digitalWrite( 4, LOW );
+        digitalWrite( INVERTER_PIN, LOW );
       }
       else
       {
-        digitalWrite( 4, HIGH );      
+        digitalWrite( INVERTER_PIN, HIGH );      
       }
       break;
     }
@@ -515,11 +560,11 @@ void ServiceMainScreen( void )
       {
         if( lcd.currentInfo == PRESSED )
         {
-          digitalWrite( 6, LOW );
+          digitalWrite( RADIO_PIN, LOW );
         }
         else
         {
-          digitalWrite( 6, HIGH );      
+          digitalWrite( RADIO_PIN, HIGH );      
         }
       }
       break;
@@ -552,7 +597,7 @@ void ServiceMainScreen( void )
 
   if ( inCompMode )
   {
-    digitalWrite( 6, HIGH );
+    digitalWrite( RADIO_PIN, HIGH );
   }
 
   updateRealTimeClock( now );
@@ -562,7 +607,11 @@ void ServiceMainScreen( void )
 }
 
 
-
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
 void ServiceOptionsScreen( void )
 {
   int const widgetId = lcd.wstack( FIFO );
@@ -598,7 +647,11 @@ void ServiceOptionsScreen( void )
 }
 
 
-
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
 void ServiceTimeScreen( void )
 {
   int const widgetId = lcd.wstack( FIFO );
@@ -748,7 +801,11 @@ void ServiceTimeScreen( void )
 
 
 
-
+//***************************************************************************
+//  
+//
+//
+//***************************************************************************
 void ServiceNumpadScreen( void )
 {
   int const widgetId = lcd.wstack( FIFO );
@@ -894,8 +951,6 @@ void ServiceNumpadScreen( void )
 
 
 
-
-
 //***************************************************************************
 //  
 //
@@ -905,19 +960,21 @@ void setup()
 {
   initializeLcdDisplay();
 
-  pinMode( 4, OUTPUT );
-  pinMode( 5, OUTPUT );
-  pinMode( 6, OUTPUT );
-  pinMode( 7, OUTPUT );
-  pinMode( LED_PIN, OUTPUT );
-  pinMode( 9, OUTPUT );//490Hz PWM (2040.8us period)
+  pinMode( INVERTER_PIN,    OUTPUT );
+  pinMode( HORN_OUT_PIN,    OUTPUT );
+  pinMode( RADIO_PIN,       OUTPUT );
+  pinMode( LED_ENABLE_PIN,  OUTPUT );
+  pinMode( BOARD_LED_PIN,   OUTPUT );
+  pinMode( LED_CONTROL_PIN, OUTPUT );//490Hz PWM (2040.8us period)
 
-  digitalWrite( 4, HIGH );
-  digitalWrite( 5, HIGH );
-  digitalWrite( 6, HIGH );
-  digitalWrite( 7, HIGH );
-  digitalWrite( LED_PIN, LOW );
-  analogWrite( 9, 125 );//analogWrite values from 0 to 255
+  pinMode( HORN_IN_0_PIN,   INPUT );
+
+  digitalWrite( INVERTER_PIN,   HIGH );
+  digitalWrite( HORN_OUT_PIN,   HIGH );
+  digitalWrite( RADIO_PIN,      HIGH );
+  digitalWrite( LED_ENABLE_PIN, HIGH );
+  digitalWrite( BOARD_LED_PIN,   LOW );
+  analogWrite(  LED_CONTROL_PIN, 125 );//analogWrite values from 0 to 255
 
   // RTC begin communication
   Wire.begin();
@@ -939,7 +996,7 @@ void loop()
   if ( currentScreen != nextScreen )
   {
     // Make sure horn is off...
-    digitalWrite( 5, HIGH );
+    updateHornControl( false );
 
     switch ( nextScreen )
     {
@@ -1013,3 +1070,4 @@ void loop()
     }
   }
 }
+
